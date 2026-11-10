@@ -67,7 +67,7 @@ class EmbyApkPatcherTest {
 
         val bytes = out.readBytes()
         assertEquals("arsc at ${indexOf(bytes, arsc)}", 0, indexOf(bytes, arsc) % 4)
-        assertEquals("so at ${indexOf(bytes, so)}", 0, indexOf(bytes, so) % 16384)
+        assertEquals("so at ${indexOf(bytes, so)} ${headers(bytes)}", 0, indexOf(bytes, so) % 16384)
     }
 
     @Test
@@ -129,6 +129,16 @@ class EmbyApkPatcherTest {
         node(0x101, 24); b.putInt(6); b.putInt(5)
         b.putInt(4, b.position())
         return b.array().copyOf(b.position())
+    }
+
+    private fun headers(h: ByteArray): String {
+        val sb = StringBuilder()
+        val bb = ByteBuffer.wrap(h).order(ByteOrder.LITTLE_ENDIAN)
+        for (i in 0 until h.size - 30) if (bb.getInt(i) == 0x04034b50) {
+            val n = bb.getShort(i + 26).toInt(); val x = bb.getShort(i + 28).toInt()
+            sb.append("[$i ${String(h, i + 30, n)} x=$x] ")
+        }
+        return sb.toString()
     }
 
     private fun indexOf(h: ByteArray, n: ByteArray): Int {
