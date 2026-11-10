@@ -13,6 +13,8 @@ Emby is free to browse your media, while playback requires [Emby Premiere](https
 
 ## How to use (Windows)
 
+![Discover Enabler on Windows](docs/screenshot.png)
+
 1. Start `DiscoverEnabler.exe` and choose your device:
    **ARM64** (most phones and tablets), **ARMv7** (Android TV, TV boxes, older phones), **Fire TV** (Amazon Fire TV and Fire tablets),
    **x64** or **x86**. Discover Enabler downloads that Emby app straight from Emby
