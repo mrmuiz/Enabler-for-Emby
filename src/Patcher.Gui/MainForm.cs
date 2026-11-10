@@ -201,34 +201,34 @@ namespace DiscoverPatcher.Gui
             Font = Theme.Font(9.5f);
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
-            ClientSize = new Size(900, 720);
+            ClientSize = new Size(900, 690);
             StartPosition = FormStartPosition.CenterScreen;
             AllowDrop = true;
             using (var ico = typeof(MainForm).Assembly.GetManifestResourceStream("DiscoverPatcher.ico"))
                 if (ico != null) Icon = new Icon(ico);
 
             // banner
-            var banner = new PictureBox { Dock = DockStyle.Top, Height = 236, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.FromArgb(14, 20, 30) };
+            var banner = new PictureBox { Dock = DockStyle.Top, Height = 214, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.FromArgb(14, 20, 30) };
             using (var s = typeof(MainForm).Assembly.GetManifestResourceStream("banner.jpg"))
                 if (s != null) banner.Image = Image.FromStream(s);
 
             var body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(32, 20, 32, 16), BackColor = Theme.Bg };
             int y = 0;
-            Control Add(Control c, int x, int top) { c.Location = new Point(x, top); body.Controls.Add(c); return c; }
+            Control Add(Control c, int x, int top) { c.Location = new Point(32 + x, 22 + top); body.Controls.Add(c); return c; }
 
             Add(Head("1", T.S("Choose your device", "Kies je apparaat")), 0, y); y += 36;
             AddCard("arm64-v8a", "ARM64", T.S("Most phones and tablets", "De meeste telefoons en tablets"), T.S("most used", "meest"));
             AddCard("armeabi-v7a", "ARMv7", T.S("Android TV and TV boxes, older phones (32-bit)", "Android TV en tv-boxen, oudere telefoons (32-bit)"), null);
             AddCard("x86_64", "x64", T.S("PCs, Chromebooks, emulators (64-bit)", "Pc's, Chromebooks, emulators (64-bit)"), null);
             AddCard("x86", "x86", T.S("Old Intel devices (32-bit)", "Oude Intel-apparaten (32-bit)"), null);
-            Add(_cards, 0, y); y += 102;
+            Add(_cards, 0, y); y += 104;
 
             _own.Text = T.S("Or patch an APK you already downloaded...", "Of patch een APK die je al hebt gedownload...");
             _own.AutoSize = true; _own.LinkColor = Theme.Muted; _own.ActiveLinkColor = Theme.Accent; _own.Font = Theme.Font(9f);
             _own.LinkBehavior = LinkBehavior.HoverUnderline;
             _own.LinkClicked += (s, e) => ChooseOwn();
             Add(_own, 0, y);
-            Add(_ownFile, 300, y); y += 40;
+            Add(_ownFile, 300, y); y += 42;
 
             Add(Head("2", T.S("Save the patched app in", "Gepatchte app opslaan in")), 0, y); y += 36;
             _folder.Width = 836 - _browse.Width - 10;
