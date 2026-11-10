@@ -121,6 +121,37 @@ jobs:
           path: out/screenshot.png
           if-no-files-found: ignore
 
+  android:
+    # Native Android app that downloads, patches and installs Emby on the device itself.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+      - name: Unit tests (patching logic)
+        working-directory: android
+        run: gradle --no-daemon :app:testDebugUnitTest
+      - name: Build APK
+        working-directory: android
+        env:
+          APP_VERSION_NAME: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '1.0' }}
+          APP_VERSION_CODE: ${{ github.run_number }}
+        run: gradle --no-daemon :app:assembleRelease
+      - name: Verify signature
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          cp android/app/build/outputs/apk/release/app-release.apk DiscoverEnabler-android.apk
+          "$BT/apksigner" verify --verbose DiscoverEnabler-android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DiscoverEnabler-android
+          path: DiscoverEnabler-android.apk
+
   cli:
     # Command-line version for Linux and macOS (one self-contained file each).
     runs-on: ubuntu-latest
@@ -149,7 +180,7 @@ jobs:
   test-builds:
     # Puts the latest test builds on branch exe-build (artifacts are not downloadable everywhere).
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-    needs: [windows, cli]
+    needs: [windows, cli, android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -161,6 +192,7 @@ jobs:
         run: |
           mkdir pub
           cp art/DiscoverEnabler/DiscoverEnabler.exe pub/
+          cp art/DiscoverEnabler-android/DiscoverEnabler-android.apk pub/
           cp art/cli-*/*.tar.gz pub/
           cp art/screenshot/screenshot.png pub/ 2>/dev/null || true
           cd pub
@@ -174,7 +206,7 @@ jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release_tag != ''
 
-    needs: [verify, windows, cli]
+    needs: [verify, windows, cli, android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -189,6 +221,7 @@ jobs:
           cp art/DiscoverEnabler/DiscoverEnabler.exe .
           zip -q -9 rel/DiscoverEnabler-windows-x64.zip DiscoverEnabler.exe README.md
           cp art/cli-*/*.tar.gz rel/
+          cp art/DiscoverEnabler-android/DiscoverEnabler-android.apk rel/
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}

@@ -3,3 +3,6 @@ obj/
 *.apk
 *.pfx
 out/
+.gradle/
+build/
+local.properties

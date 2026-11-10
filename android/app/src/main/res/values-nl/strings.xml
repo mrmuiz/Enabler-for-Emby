@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Discover Enabler</string>
+    <string name="intro">Past de officiële Emby voor Android-app aan zodat de Discover Media-plug-in laadt. Kies je apparaat en tik op downloaden en patchen.</string>
+    <string name="choose_device">Apparaattype</string>
+    <string name="dev_arm64">ARM64 – de meeste telefoons en tablets</string>
+    <string name="dev_armv7">ARMv7 – Android TV, tv-boxen en oudere telefoons</string>
+    <string name="dev_firetv">Fire TV – Amazon Fire TV en Fire-tablets</string>
+    <string name="dev_x64">x64 – pc\'s, Chromebooks en emulators</string>
+    <string name="dev_x86">x86 – oudere Intel-apparaten</string>
+    <string name="btn_download">Downloaden en patchen</string>
+    <string name="btn_pick">Gebruik een APK die ik al heb…</string>
+    <string name="btn_install">Installeren</string>
+    <string name="note_uninstall">Verwijder eerst eenmalig de officiële Emby-app: de gepatchte app wordt met de eigen sleutel van deze app ondertekend. Latere Emby-updates die op dit apparaat gepatcht worden, installeren er gewoon overheen.</string>
+    <string name="st_downloading">%1$s downloaden … %2$d%%</string>
+    <string name="st_downloading_unknown">%1$s downloaden … %2$d MB</string>
+    <string name="st_copying">Gekozen APK lezen …</string>
+    <string name="st_patching">Patchen en ondertekenen … (kan een minuutje duren)</string>
+    <string name="st_done">Klaar: %1$s</string>
+    <string name="st_error">Fout: %1$s</string>
+    <string name="st_allow_install">Sta deze app toe om apps te installeren en tik dan opnieuw op Installeren.</string>
+    <string name="err_not_emby">Dit lijkt niet de Emby voor Android-app (telefoon/tablet-versie). De aparte Android TV-app kan niet gepatcht worden.</string>
+</resources>

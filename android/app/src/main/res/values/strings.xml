@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Discover Enabler</string>
+    <string name="intro">Patches the official Emby for Android app so it loads the Discover Media plugin. Choose your device, then download and patch.</string>
+    <string name="choose_device">Device type</string>
+    <string name="dev_arm64">ARM64 – most phones and tablets</string>
+    <string name="dev_armv7">ARMv7 – Android TV, TV boxes and older phones</string>
+    <string name="dev_firetv">Fire TV – Amazon Fire TV and Fire tablets</string>
+    <string name="dev_x64">x64 – PCs, Chromebooks and emulators</string>
+    <string name="dev_x86">x86 – older Intel devices</string>
+    <string name="btn_download">Download and patch</string>
+    <string name="btn_pick">Use an APK I already have…</string>
+    <string name="btn_install">Install</string>
+    <string name="note_uninstall">Uninstall the official Emby app once first: the patched app is signed with this app\'s own key. Later Emby updates patched on this device install over it.</string>
+    <string name="st_downloading">Downloading %1$s … %2$d%%</string>
+    <string name="st_downloading_unknown">Downloading %1$s … %2$d MB</string>
+    <string name="st_copying">Reading the selected APK …</string>
+    <string name="st_patching">Patching and signing … (this can take a minute)</string>
+    <string name="st_done">Ready: %1$s</string>
+    <string name="st_error">Error: %1$s</string>
+    <string name="st_allow_install">Allow this app to install apps, then tap Install again.</string>
+    <string name="err_not_emby">This does not look like the Emby for Android app (phone/tablet version). The separate Android TV app cannot be patched.</string>
+</resources>

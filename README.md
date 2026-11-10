@@ -32,6 +32,19 @@ Discover Enabler signs the app with its own key, kept on your computer
 
 The Emby server must have the Discover Media plugin installed.
 
+## How to use (on the Android device itself)
+
+Install `DiscoverEnabler-android.apk` from the releases (allow "install unknown apps" when asked). The app does
+the same as the Windows version, directly on your phone, tablet or TV box:
+
+1. Choose your device type (detected automatically) and tap **Download and patch**, or pick an Emby APK you already have.
+2. The app downloads Emby, patches it, signs it with its own key (kept in the app's private storage) and opens the Android installer.
+3. Uninstall the official Emby app once first, then install the patched one.
+
+Later Emby updates patched on the same device install over the patched app. Uninstalling Discover Enabler removes its key,
+so keep the app installed if you want seamless updates. The source is in `android/` (Kotlin, Gradle) and it embeds the same
+`src/Enabler.Core/discover-web-loader.js`. Build: `cd android && gradle :app:assembleRelease` (tests: `gradle :app:testDebugUnitTest`).
+
 ## What it changes
 
 | File in the APK | Change |
