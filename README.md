@@ -1,5 +1,9 @@
 ![Discover Enabler for Emby](docs/banner.jpg)
 
+<p align="center">
+  <a href="https://ko-fi.com/mrmuiz"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi"></a>
+</p>
+
 # Discover Enabler
 
 Makes the official **Emby for Android** app (phone/tablet, also runs on Android TV) load the
