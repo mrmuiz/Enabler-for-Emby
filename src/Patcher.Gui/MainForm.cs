@@ -233,10 +233,10 @@ namespace DiscoverPatcher.Gui
             Add(Head("2", T.S("Save the patched app in", "Gepatchte app opslaan in")), 0, y); y += 36;
             _folder.Width = 836 - _browse.Width - 10;
             Add(_folder, 0, y + 4);
-            Add(_browse, _folder.Right + 10, y); y += 56;
+            Add(_browse, _folder.Right - 32 + 10, y); y += 56;
 
             Add(_go, 0, y);
-            Add(_openFolder, _go.Right + 14, y + 6); y += 62;
+            Add(_openFolder, _go.Right - 32 + 14, y + 6); y += 62;
             _bar.Width = 836 - 2; Add(_bar, 0, y); y += 16;
             _status.Width = 836 - 2; Add(_status, 0, y);
 
