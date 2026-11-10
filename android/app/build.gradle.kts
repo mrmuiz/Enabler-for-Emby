@@ -49,6 +49,10 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 
+    testOptions {
+        unitTests.all { it.testLogging { exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL } }
+    }
+
     packaging {
         resources.excludes += setOf("META-INF/versions/**", "META-INF/*.kotlin_module", "META-INF/DEPENDENCIES")
     }
