@@ -1,3 +1,5 @@
+![Discover Enabler for Emby](docs/banner.jpg)
+
 # Discover Enabler
 
 Makes the official **Emby for Android** app (phone/tablet, also runs on Android TV) load the
