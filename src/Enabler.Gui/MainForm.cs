@@ -173,7 +173,7 @@ namespace DiscoverEnabler.Gui
 
     public sealed class MainForm : Form
     {
-        const string RepoUrl = "https://github.com/mrmuiz/Discover-Enabler";
+        const string RepoUrl = "https://github.com/mrmuiz/Enabler-for-Emby";
         const string KofiUrl = "https://ko-fi.com/mrmuiz";
         const string PremiereUrl = "https://emby.media/premiere.html";
 
