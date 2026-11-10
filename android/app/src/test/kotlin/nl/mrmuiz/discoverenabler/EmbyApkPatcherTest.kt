@@ -66,8 +66,8 @@ class EmbyApkPatcherTest {
         assertTrue(verdict.isVerifiedUsingV2Scheme)
 
         val bytes = out.readBytes()
-        assertEquals(0, indexOf(bytes, arsc) % 4)
-        assertEquals(0, indexOf(bytes, so) % 16384)
+        assertEquals("arsc at ${indexOf(bytes, arsc)}", 0, indexOf(bytes, arsc) % 4)
+        assertEquals("so at ${indexOf(bytes, so)}", 0, indexOf(bytes, so) % 16384)
     }
 
     @Test
