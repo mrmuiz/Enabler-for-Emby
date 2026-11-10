@@ -31,6 +31,7 @@ namespace DiscoverPatcher
         public static X509Certificate2 LoadOrCreateKey(string path)
         {
             const string pwd = "discover-patcher";
+            path = Path.GetFullPath(path);
             if (File.Exists(path))
                 return new X509Certificate2(File.ReadAllBytes(path), pwd, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
