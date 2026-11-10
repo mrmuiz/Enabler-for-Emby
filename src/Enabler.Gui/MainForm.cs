@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace DiscoverPatcher.Gui
+namespace DiscoverEnabler.Gui
 {
     internal static class Program
     {
@@ -173,8 +173,7 @@ namespace DiscoverPatcher.Gui
 
     public sealed class MainForm : Form
     {
-        const string ReleaseBase = "https://github.com/MediaBrowser/Emby.Releases/raw/master/android/";
-        const string RepoUrl = "https://github.com/mrmuiz/Discover-Patcher";
+        const string RepoUrl = "https://github.com/mrmuiz/Discover-Enabler";
         const string KofiUrl = "https://ko-fi.com/mrmuiz";
         const string PremiereUrl = "https://emby.media/premiere.html";
 
@@ -195,7 +194,7 @@ namespace DiscoverPatcher.Gui
         {
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
-            Text = "Discover Patcher";
+            Text = "Discover Enabler";
             BackColor = Theme.Bg;
             ForeColor = Theme.Text;
             Font = Theme.Font(9.5f);
@@ -204,7 +203,7 @@ namespace DiscoverPatcher.Gui
             ClientSize = new Size(900, 690);
             StartPosition = FormStartPosition.CenterScreen;
             AllowDrop = true;
-            using (var ico = typeof(MainForm).Assembly.GetManifestResourceStream("DiscoverPatcher.ico"))
+            using (var ico = typeof(MainForm).Assembly.GetManifestResourceStream("DiscoverEnabler.ico"))
                 if (ico != null) Icon = new Icon(ico);
 
             // banner
@@ -217,11 +216,7 @@ namespace DiscoverPatcher.Gui
             Control Add(Control c, int x, int top) { c.Location = new Point(32 + x, 22 + top); body.Controls.Add(c); return c; }
 
             Add(Head("1", T.S("Choose your device", "Kies je apparaat")), 0, y); y += 36;
-            AddCard("google-arm64-v8a", "ARM64", "Most phones and tablets", null);
-            AddCard("google-armeabi-v7a", "ARMv7", "Android TV, TV boxes and older phones", null);
-            AddCard("amazon-armeabi-v7a", "Fire TV", "Amazon Fire TV and Fire tablets", null);
-            AddCard("google-x86_64", "x64", "PCs, Chromebooks and emulators", null);
-            AddCard("google-x86", "x86", "Older Intel devices", null);
+            foreach (var b in EmbyDownloads.Builds) AddCard(b.Id, b.Title, b.Description, null);
             Add(_cards, 0, y); y += 106;
 
             _own.Text = T.S("Or patch an APK you already downloaded...", "Of patch een APK die je al hebt gedownload...");
@@ -358,7 +353,7 @@ namespace DiscoverPatcher.Gui
             string input = _ownApk, tempDownload = null;
             string output = Path.Combine(folder, _ownApk != null
                 ? Path.GetFileNameWithoutExtension(_ownApk) + "-discover.apk"
-                : "Emby-" + card.Title.Replace(" ", "") + "-Discover.apk");
+                : EmbyDownloads.OutputName(EmbyDownloads.Find(card.Key)));
             if (input != null && string.Equals(Path.GetFullPath(output), Path.GetFullPath(input), StringComparison.OrdinalIgnoreCase))
                 output = Path.Combine(folder, Path.GetFileNameWithoutExtension(input) + "-patched.apk");
 
@@ -368,8 +363,9 @@ namespace DiscoverPatcher.Gui
             {
                 if (input == null)
                 {
-                    tempDownload = Path.Combine(Path.GetTempPath(), "emby-android-" + card.Key + "-release.apk");
-                    await Download(ReleaseBase + "emby-android-" + card.Key + "-release.apk", tempDownload);
+                    var build = EmbyDownloads.Find(card.Key);
+                    tempDownload = Path.Combine(Path.GetTempPath(), build.File);
+                    await Download(build, tempDownload);
                     input = tempDownload;
                 }
                 _bar.Value = -1;
@@ -395,36 +391,19 @@ namespace DiscoverPatcher.Gui
             }
         }
 
-        async Task Download(string url, string path)
+        async Task Download(EmbyBuild build, string path)
         {
-            Status(T.S("Downloading from Emby (GitHub)...", "Downloaden van Emby (GitHub)..."));
-            _bar.Value = 0;
-            using (var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) })
+            Status("Downloading " + build.File + " from Emby (GitHub)...");
+            _bar.Value = -1;
+            await EmbyDownloads.Download(build, path, (done, total) =>
             {
-                http.DefaultRequestHeaders.UserAgent.ParseAdd("DiscoverPatcher/1.0");
-                using (var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
+                if (total <= 0) return;
+                BeginInvoke(new Action(() =>
                 {
-                    resp.EnsureSuccessStatusCode();
-                    long total = resp.Content.Headers.ContentLength ?? -1, done = 0;
-                    if (total < 0) _bar.Value = -1;
-                    using (var src = await resp.Content.ReadAsStreamAsync())
-                    using (var dst = File.Create(path))
-                    {
-                        var buf = new byte[81920];
-                        int n;
-                        while ((n = await src.ReadAsync(buf, 0, buf.Length)) > 0)
-                        {
-                            await dst.WriteAsync(buf, 0, n);
-                            done += n;
-                            if (total > 0)
-                            {
-                                _bar.Value = (int)(done * 100 / total);
-                                Status(T.S("Downloading from Emby (GitHub)... ", "Downloaden van Emby (GitHub)... ") + (done / 1048576) + " / " + (total / 1048576) + " MB");
-                            }
-                        }
-                    }
-                }
-            }
+                    _bar.Value = (int)(done * 100 / total);
+                    Status("Downloading from Emby (GitHub)... " + (done / 1048576) + " / " + (total / 1048576) + " MB");
+                }));
+            });
         }
 
         void SetBusy(bool busy)
@@ -437,7 +416,7 @@ namespace DiscoverPatcher.Gui
 
         void LoadSettings()
         {
-            string folder = null, arch = "google-arm64-v8a";
+            string folder = null, arch = "arm64";
             try
             {
                 if (File.Exists(SettingsPath))

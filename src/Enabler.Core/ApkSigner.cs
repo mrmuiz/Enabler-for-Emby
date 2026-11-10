@@ -7,7 +7,7 @@ using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
-namespace DiscoverPatcher
+namespace DiscoverEnabler
 {
     /// <summary>
     /// Signs an APK with JAR signing (v1) and APK Signature Scheme v2, using a self-signed key that is kept
@@ -30,14 +30,14 @@ namespace DiscoverPatcher
 
         public static X509Certificate2 LoadOrCreateKey(string path)
         {
-            const string pwd = "discover-patcher";
+            const string pwd = "discover-patcher";   // keep: keys made by earlier versions use it
             path = Path.GetFullPath(path);
             if (File.Exists(path))
                 return new X509Certificate2(File.ReadAllBytes(path), pwd, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using (var rsa = RSA.Create(2048))
             {
-                var req = new CertificateRequest("CN=Discover Patcher, O=Discover Media", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                var req = new CertificateRequest("CN=Discover Enabler, O=Discover Media", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
                 var now = DateTimeOffset.UtcNow.Date;
                 using (var cert = req.CreateSelfSigned(now.AddDays(-1), now.AddYears(30)))
                 {
@@ -51,7 +51,19 @@ namespace DiscoverPatcher
         {
             var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             if (string.IsNullOrEmpty(baseDir)) baseDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
-            return Path.Combine(baseDir, "DiscoverPatcher", "signing-key.pfx");
+            var path = Path.Combine(baseDir, "DiscoverEnabler", "signing-key.pfx");
+            // Key from the earlier "Discover Patcher": keep using it, so updates still install over the patched app.
+            var old = Path.Combine(baseDir, "DiscoverPatcher", "signing-key.pfx");
+            try
+            {
+                if (!File.Exists(path) && File.Exists(old))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(path));
+                    File.Copy(old, path);
+                }
+            }
+            catch { }
+            return path;
         }
 
         // ---------- v1 (JAR) ----------
@@ -59,7 +71,7 @@ namespace DiscoverPatcher
         public static void AddV1(List<ZipEntry> entries, X509Certificate2 cert)
         {
             entries.RemoveAll(e => IsSignatureFile(e.Name));
-            var mf = new StringBuilder("Manifest-Version: 1.0\r\nCreated-By: 1.0 (Discover Patcher)\r\n\r\n");
+            var mf = new StringBuilder("Manifest-Version: 1.0\r\nCreated-By: 1.0 (Discover Enabler)\r\n\r\n");
             var sf = new StringBuilder();
             var sections = new List<string>();
             using (var sha = SHA256.Create())
@@ -73,7 +85,7 @@ namespace DiscoverPatcher
                     sections.Add(Wrap("Name: " + e.Name) + "SHA-256-Digest: " + Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(section))) + "\r\n\r\n");
                 }
                 var mfBytes = Encoding.UTF8.GetBytes(mf.ToString());
-                sf.Append("Signature-Version: 1.0\r\nCreated-By: 1.0 (Discover Patcher)\r\n");
+                sf.Append("Signature-Version: 1.0\r\nCreated-By: 1.0 (Discover Enabler)\r\n");
                 sf.Append("SHA-256-Digest-Manifest: " + Convert.ToBase64String(sha.ComputeHash(mfBytes)) + "\r\n");
                 sf.Append("X-Android-APK-Signed: 2\r\n\r\n");
                 foreach (var s in sections) sf.Append(s);

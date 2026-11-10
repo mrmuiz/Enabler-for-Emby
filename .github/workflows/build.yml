@@ -19,11 +19,11 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Build CLI
-        run: dotnet build src/Patcher.Cli/Patcher.Cli.csproj -c Release
+        run: dotnet build src/Enabler.Cli/Enabler.Cli.csproj -c Release
       - name: Download Emby for Android
         run: curl -fsSL -o emby.apk https://github.com/MediaBrowser/Emby.Releases/raw/master/android/emby-android-google-arm64-v8a-release.apk
       - name: Patch
-        run: dotnet src/Patcher.Cli/bin/Release/net8.0/discover-patcher.dll emby.apk emby-discover.apk --key ci-key.pfx
+        run: dotnet src/Enabler.Cli/bin/Release/net8.0/discover-enabler.dll emby.apk emby-discover.apk --key ci-key.pfx
       - name: Verify signature and alignment
         run: |
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
@@ -37,9 +37,14 @@ jobs:
           unzip -p emby-discover.apk assets/www/native/android/apphost.js | grep -n "restrictedplugins"
           unzip -l emby-discover.apk assets/www/discover-web-loader.js
           ls -l emby.apk emby-discover.apk
+      - name: Download-and-patch mode (Fire TV build)
+        run: |
+          dotnet src/Enabler.Cli/bin/Release/net8.0/discover-enabler.dll --device firetv --out dl --key ci-key.pfx
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify dl/Emby-FireTV-Discover.apk && echo "fire tv OK"
       - name: Patch again (same key, already patched input)
         run: |
-          dotnet src/Patcher.Cli/bin/Release/net8.0/discover-patcher.dll emby-discover.apk twice.apk --key ci-key.pfx
+          dotnet src/Enabler.Cli/bin/Release/net8.0/discover-enabler.dll emby-discover.apk twice.apk --key ci-key.pfx
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           "$BT/apksigner" verify twice.apk && echo "re-patch OK"
 
@@ -53,9 +58,9 @@ jobs:
           dotnet-version: 8.0.x
       - name: Build CLI and patch x86_64 APK
         run: |
-          dotnet build src/Patcher.Cli/Patcher.Cli.csproj -c Release
+          dotnet build src/Enabler.Cli/Enabler.Cli.csproj -c Release
           curl -fsSL -o emby.apk https://github.com/MediaBrowser/Emby.Releases/raw/master/android/emby-android-google-x86_64-release.apk
-          dotnet src/Patcher.Cli/bin/Release/net8.0/discover-patcher.dll emby.apk patched.apk --key ci-key.pfx
+          dotnet src/Enabler.Cli/bin/Release/net8.0/discover-enabler.dll emby.apk patched.apk --key ci-key.pfx
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -79,25 +84,23 @@ jobs:
 
   windows:
     runs-on: windows-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
       - name: Publish single exe
-        run: dotnet publish src/Patcher.Gui/Patcher.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out
+        run: dotnet publish src/Enabler.Gui/Enabler.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out
       - uses: actions/upload-artifact@v4
         with:
-          name: DiscoverPatcher
-          path: out/DiscoverPatcher.exe
+          name: DiscoverEnabler
+          path: out/DiscoverEnabler.exe
       - name: Screenshot of the window
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         shell: pwsh
         continue-on-error: true
         run: |
-          $p = Start-Process -FilePath out/DiscoverPatcher.exe -PassThru
+          $p = Start-Process -FilePath out/DiscoverEnabler.exe -PassThru
           Start-Sleep -Seconds 8
           Add-Type -AssemblyName System.Windows.Forms, System.Drawing
           $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
@@ -106,29 +109,81 @@ jobs:
           $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
           $bmp.Save("$PWD/out/screenshot.png")
           Stop-Process -Id $p.Id -Force
-      - name: Put the test exe on branch exe-build
+      - uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        shell: bash
-        run: |
-          mkdir pub && cp out/DiscoverPatcher.exe pub/ && (cp out/screenshot.png pub/ || true) && cd pub
-          git init -q -b exe-build
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git add -A
-          git commit -q -m "DiscoverPatcher.exe from ${GITHUB_SHA::7}"
-          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" exe-build
+        with:
+          name: screenshot
+          path: out/screenshot.png
+          if-no-files-found: ignore
 
-  release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [verify, windows]
+  cli:
+    # Command-line version for Linux and macOS (one self-contained file each).
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rid: [linux-x64, linux-arm64, osx-x64, osx-arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish
+        run: |
+          dotnet publish src/Enabler.Cli/Enabler.Cli.csproj -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:InvariantGlobalization=true -o out
+          cp README.md out/
+          chmod +x out/discover-enabler
+          tar -czf discover-enabler-${{ matrix.rid }}.tar.gz -C out discover-enabler README.md
+      - name: Smoke test
+        if: matrix.rid == 'linux-x64'
+        run: ./out/discover-enabler --help || test $? -eq 2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.rid }}
+          path: discover-enabler-${{ matrix.rid }}.tar.gz
+
+  test-builds:
+    # Puts the latest test builds on branch exe-build (artifacts are not downloadable everywhere).
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    needs: [windows, cli]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: DiscoverPatcher
+          path: art
+      - name: Push to exe-build
+        run: |
+          mkdir pub
+          cp art/DiscoverEnabler/DiscoverEnabler.exe pub/
+          cp art/cli-*/*.tar.gz pub/
+          cp art/screenshot/screenshot.png pub/ 2>/dev/null || true
+          cd pub
+          git init -q -b exe-build
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Test builds from ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" exe-build
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [verify, windows, cli]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: art
+      - name: Package
+        run: |
+          mkdir rel
+          cp art/DiscoverEnabler/DiscoverEnabler.exe README.md .
+          zip -q -9 rel/DiscoverEnabler-windows-x64.zip DiscoverEnabler.exe README.md
+          cp art/cli-*/*.tar.gz rel/
       - uses: softprops/action-gh-release@v2
         with:
-          files: DiscoverPatcher.exe
+          files: rel/*
           generate_release_notes: true

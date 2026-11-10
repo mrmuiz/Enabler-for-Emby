@@ -5,22 +5,22 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <AssemblyName>DiscoverPatcher</AssemblyName>
-    <RootNamespace>DiscoverPatcher.Gui</RootNamespace>
+    <AssemblyName>DiscoverEnabler</AssemblyName>
+    <RootNamespace>DiscoverEnabler.Gui</RootNamespace>
     <Version>1.2.0</Version>
-    <Product>Discover Patcher</Product>
+    <Product>Discover Enabler</Product>
     <Company>mrmuiz</Company>
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
-    <ApplicationIcon>DiscoverPatcher.ico</ApplicationIcon>
+    <ApplicationIcon>DiscoverEnabler.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="DiscoverPatcher.ico" LogicalName="DiscoverPatcher.ico" />
+    <EmbeddedResource Include="DiscoverEnabler.ico" LogicalName="DiscoverEnabler.ico" />
     <EmbeddedResource Include="banner.jpg" LogicalName="banner.jpg" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Patcher.Core\Patcher.Core.csproj" />
+    <ProjectReference Include="..\Enabler.Core\Enabler.Core.csproj" />
   </ItemGroup>
 
 </Project>

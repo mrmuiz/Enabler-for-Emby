@@ -4,8 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>disable</Nullable>
     <LangVersion>latest</LangVersion>
-    <RootNamespace>DiscoverPatcher</RootNamespace>
-    <AssemblyName>DiscoverPatcher.Core</AssemblyName>
+    <RootNamespace>DiscoverEnabler</RootNamespace>
+    <AssemblyName>DiscoverEnabler.Core</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

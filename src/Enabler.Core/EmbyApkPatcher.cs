@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace DiscoverPatcher
+namespace DiscoverEnabler
 {
     /// <summary>
     /// Patches the official Emby for Android APK (from emby.media / MediaBrowser/Emby.Releases) so it loads
@@ -59,13 +59,13 @@ namespace DiscoverPatcher
             // 2. apphost.js
             var js = Encoding.UTF8.GetString(apphost.GetUncompressed());
             const string on = "features.restrictedplugins = true;";
-            const string off = "features.restrictedplugins = false; /* Discover Patcher */";
+            const string off = "features.restrictedplugins = false; /* Discover Enabler */";
             if (js.Contains(on))
             {
                 js = js.Replace(on, off);
                 Say("apphost.js: plugin pages allowed in the app (Discover in the menu)");
             }
-            else if (js.Contains(off)) Say("apphost.js: already patched");
+            else if (js.Contains("features.restrictedplugins = false;")) Say("apphost.js: already patched");
             else Say("apphost.js: restriction not found (newer Emby version?) - menu entry may be missing");
             Replace(entries, apphost, Encoding.UTF8.GetBytes(js));
 

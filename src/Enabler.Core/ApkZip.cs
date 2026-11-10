@@ -4,7 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 
-namespace DiscoverPatcher
+namespace DiscoverEnabler
 {
     /// <summary>One file inside the APK. Raw (compressed) bytes are kept as they are, so untouched files are copied 1:1.</summary>
     public sealed class ZipEntry
