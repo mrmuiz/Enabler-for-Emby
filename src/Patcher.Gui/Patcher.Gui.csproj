@@ -7,7 +7,7 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>DiscoverPatcher</AssemblyName>
     <RootNamespace>DiscoverPatcher.Gui</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Product>Discover Patcher</Product>
     <Company>mrmuiz</Company>
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>

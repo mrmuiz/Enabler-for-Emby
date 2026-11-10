@@ -50,8 +50,7 @@ namespace DiscoverPatcher.Gui
     /// <summary>Texts in Dutch or English, following the Windows language.</summary>
     internal static class T
     {
-        static readonly bool Nl = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "nl";
-        public static string S(string en, string nl) => Nl ? nl : en;
+        public static string S(string en, string nl) => en;   // English only
     }
 
     /// <summary>Selectable card for one Emby APK build (arm64, armv7, ...).</summary>
@@ -64,8 +63,8 @@ namespace DiscoverPatcher.Gui
         public ArchCard()
         {
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.SupportsTransparentBackColor, true);
-            Size = new Size(196, 92);
-            Margin = new Padding(0, 0, 12, 0);
+            Size = new Size(159, 96);
+            Margin = new Padding(0, 0, 10, 0);
             Cursor = Cursors.Hand;
             BackColor = Theme.Bg;
         }
@@ -92,7 +91,7 @@ namespace DiscoverPatcher.Gui
             using (var pen = new Pen(_selected ? Theme.Accent : Theme.Muted, 2f)) g.DrawEllipse(pen, dot);
             if (_selected) using (var b = new SolidBrush(Theme.Accent)) g.FillEllipse(b, Rectangle.Inflate(dot, -P(4), -P(4)));
 
-            using (var f1 = Theme.Font(13f, FontStyle.Bold))
+            using (var f1 = Theme.Font(12.5f, FontStyle.Bold))
             using (var f2 = Theme.Font(8.5f))
             using (var fb = Theme.Font(7.5f, FontStyle.Bold))
             using (var tb = new SolidBrush(Theme.Text))
@@ -177,6 +176,7 @@ namespace DiscoverPatcher.Gui
         const string ReleaseBase = "https://github.com/MediaBrowser/Emby.Releases/raw/master/android/";
         const string RepoUrl = "https://github.com/mrmuiz/Discover-Patcher";
         const string KofiUrl = "https://ko-fi.com/mrmuiz";
+        const string PremiereUrl = "https://emby.media/premiere.html";
 
         readonly FlowLayoutPanel _cards = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Theme.Bg, Margin = new Padding(0) };
         readonly LinkLabel _own = new LinkLabel();
@@ -217,11 +217,12 @@ namespace DiscoverPatcher.Gui
             Control Add(Control c, int x, int top) { c.Location = new Point(32 + x, 22 + top); body.Controls.Add(c); return c; }
 
             Add(Head("1", T.S("Choose your device", "Kies je apparaat")), 0, y); y += 36;
-            AddCard("arm64-v8a", "ARM64", T.S("Most phones and tablets", "De meeste telefoons en tablets"), T.S("most used", "meest"));
-            AddCard("armeabi-v7a", "ARMv7", T.S("Android TV and TV boxes, older phones (32-bit)", "Android TV en tv-boxen, oudere telefoons (32-bit)"), null);
-            AddCard("x86_64", "x64", T.S("PCs, Chromebooks, emulators (64-bit)", "Pc's, Chromebooks, emulators (64-bit)"), null);
-            AddCard("x86", "x86", T.S("Old Intel devices (32-bit)", "Oude Intel-apparaten (32-bit)"), null);
-            Add(_cards, 0, y); y += 104;
+            AddCard("google-arm64-v8a", "ARM64", "Most phones and tablets", null);
+            AddCard("google-armeabi-v7a", "ARMv7", "Android TV, TV boxes and older phones", null);
+            AddCard("amazon-armeabi-v7a", "Fire TV", "Amazon Fire TV and Fire tablets", null);
+            AddCard("google-x86_64", "x64", "PCs, Chromebooks and emulators", null);
+            AddCard("google-x86", "x86", "Older Intel devices", null);
+            Add(_cards, 0, y); y += 106;
 
             _own.Text = T.S("Or patch an APK you already downloaded...", "Of patch een APK die je al hebt gedownload...");
             _own.AutoSize = true; _own.LinkColor = Theme.Muted; _own.ActiveLinkColor = Theme.Accent; _own.Font = Theme.Font(9f);
@@ -242,10 +243,14 @@ namespace DiscoverPatcher.Gui
 
             // footer
             var footer = new Panel { Dock = DockStyle.Bottom, Height = 34, BackColor = Color.FromArgb(10, 14, 20), Padding = new Padding(32, 0, 32, 0) };
-            var ver = new Label { Text = "Discover Patcher " + Application.ProductVersion.Split('+')[0] + "  ·  " + T.S("Emby Premiere is still required", "Emby Premiere blijft nodig"), ForeColor = Theme.Muted, AutoSize = true, Font = Theme.Font(8.5f), Location = new Point(32, 9) };
+            const string premiere = "Emby is free to browse your media, while playback requires Emby Premiere.";
+            var prem = new LinkLabel { Text = premiere, AutoSize = true, ForeColor = Theme.Muted, LinkColor = Theme.Accent, ActiveLinkColor = Theme.Text, Font = Theme.Font(8.5f), LinkBehavior = LinkBehavior.HoverUnderline, Location = new Point(32, 9) };
+            prem.LinkArea = new LinkArea(premiere.IndexOf("Emby Premiere"), "Emby Premiere".Length);
+            prem.LinkClicked += (s, e) => Process.Start(new ProcessStartInfo(PremiereUrl) { UseShellExecute = true });
+            var ver = new Label { Text = "v" + Application.ProductVersion.Split('+')[0], ForeColor = Theme.Muted, AutoSize = true, Font = Theme.Font(8.5f), Location = new Point(900 - 32 - 190, 9) };
             var gh = FooterLink("GitHub", RepoUrl); gh.Location = new Point(900 - 32 - 130, 9);
             var kofi = FooterLink("Ko-fi", KofiUrl); kofi.Location = new Point(900 - 32 - 60, 9);
-            footer.Controls.AddRange(new Control[] { ver, gh, kofi });
+            footer.Controls.AddRange(new Control[] { prem, ver, gh, kofi });
 
             Controls.Add(body);
             Controls.Add(footer);
@@ -353,7 +358,7 @@ namespace DiscoverPatcher.Gui
             string input = _ownApk, tempDownload = null;
             string output = Path.Combine(folder, _ownApk != null
                 ? Path.GetFileNameWithoutExtension(_ownApk) + "-discover.apk"
-                : "Emby-" + card.Title + "-Discover.apk");
+                : "Emby-" + card.Title.Replace(" ", "") + "-Discover.apk");
             if (input != null && string.Equals(Path.GetFullPath(output), Path.GetFullPath(input), StringComparison.OrdinalIgnoreCase))
                 output = Path.Combine(folder, Path.GetFileNameWithoutExtension(input) + "-patched.apk");
 
@@ -363,8 +368,8 @@ namespace DiscoverPatcher.Gui
             {
                 if (input == null)
                 {
-                    tempDownload = Path.Combine(Path.GetTempPath(), "emby-android-google-" + card.Key + "-release.apk");
-                    await Download(ReleaseBase + "emby-android-google-" + card.Key + "-release.apk", tempDownload);
+                    tempDownload = Path.Combine(Path.GetTempPath(), "emby-android-" + card.Key + "-release.apk");
+                    await Download(ReleaseBase + "emby-android-" + card.Key + "-release.apk", tempDownload);
                     input = tempDownload;
                 }
                 _bar.Value = -1;
@@ -432,7 +437,7 @@ namespace DiscoverPatcher.Gui
 
         void LoadSettings()
         {
-            string folder = null, arch = "arm64-v8a";
+            string folder = null, arch = "google-arm64-v8a";
             try
             {
                 if (File.Exists(SettingsPath))

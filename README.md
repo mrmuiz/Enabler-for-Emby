@@ -7,14 +7,16 @@ Makes the official **Emby for Android** app (phone/tablet, also runs on Android 
 - the **Discover tile** opens the Discover page, and the **Request** button works on Emby's own detail pages.
 
 Nothing else changes: Emby Premiere, playback and everything else stay exactly as in the original app.
-You still need an Emby Premiere license where Emby asks for one.
+Emby is free to browse your media, while playback requires [Emby Premiere](https://emby.media/premiere.html).
 
 ## How to use (Windows)
 
-1. Download the APK for your device from **[emby.media → Emby for Android](https://emby.media/emby-for-android.html)**
-   (most phones and TV boxes: *arm64*).
-2. Start `DiscoverPatcher.exe`, choose the APK (or drop it on the window) and click **Patch**.
-3. Uninstall the official Emby app once, then install the new `…-discover.apk`.
+1. Start `DiscoverPatcher.exe` and choose your device:
+   **ARM64** (most phones and tablets), **ARMv7** (Android TV, TV boxes, older phones), **Fire TV** (Amazon Fire TV and Fire tablets),
+   **x64** or **x86**. The patcher downloads that Emby app straight from Emby
+   ([Emby for Android](https://emby.media/emby-for-android.html)). Already have the APK? Choose it or drop it on the window.
+2. Choose where to save it and click **Download and patch**.
+3. Uninstall the official Emby app once, then install the new `Emby-…-Discover.apk`.
 
 The patcher signs the app with its own key, kept on your computer
 (`%APPDATA%\DiscoverPatcher\signing-key.pfx`). Patch later Emby updates on the **same computer**
@@ -32,7 +34,9 @@ The Emby server must have the Discover Media plugin installed.
 
 ## Not supported
 
-- The separate **Emby for Android TV** app (it has no built-in web client); use the phone/tablet APK on Android TV instead.
+- The separate TV apps **[Emby for Android TV](https://emby.media/emby-for-android-tv.html)** and
+  **[Emby for Fire TV](https://emby.media/emby-for-fire-tv.html)** (they have no built-in web client).
+  On those devices use the patched **ARMv7** or **Fire TV** build instead; it works with a remote too.
 - **iOS**, **Roku**: apps cannot be patched.
 - **LG webOS**: Emby offers no app file to download.
 
