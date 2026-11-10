@@ -1,0 +1,86 @@
+name: Build
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    # Patch the real Emby for Android APK and check the result with Google's own apksigner/zipalign.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build CLI
+        run: dotnet build src/Patcher.Cli/Patcher.Cli.csproj -c Release
+      - name: Download Emby for Android
+        run: curl -fsSL -o emby.apk https://github.com/MediaBrowser/Emby.Releases/raw/master/android/emby-android-google-arm64-v8a-release.apk
+      - name: Patch
+        run: dotnet src/Patcher.Cli/bin/Release/net8.0/discover-patcher.dll emby.apk emby-discover.apk --key ci-key.pfx
+      - name: Verify signature and alignment
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "build-tools: $BT"
+          "$BT/apksigner" verify --verbose --print-certs emby-discover.apk
+          "$BT/zipalign" -c -P 16 -v 4 emby-discover.apk | tail -3
+          "$BT/aapt2" dump badging emby-discover.apk | head -5
+      - name: Check patched files
+        run: |
+          unzip -p emby-discover.apk assets/www/index.html | grep -n "discover-web-loader.js"
+          unzip -p emby-discover.apk assets/www/native/android/apphost.js | grep -n "restrictedplugins"
+          unzip -l emby-discover.apk assets/www/discover-web-loader.js
+          ls -l emby.apk emby-discover.apk
+      - name: Patch again (same key, already patched input)
+        run: |
+          dotnet src/Patcher.Cli/bin/Release/net8.0/discover-patcher.dll emby-discover.apk twice.apk --key ci-key.pfx
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify twice.apk && echo "re-patch OK"
+
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish single exe
+        run: dotnet publish src/Patcher.Gui/Patcher.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DiscoverPatcher
+          path: out/DiscoverPatcher.exe
+      - name: Put the test exe on branch exe-build
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        shell: bash
+        run: |
+          mkdir pub && cp out/DiscoverPatcher.exe pub/ && cd pub
+          git init -q -b exe-build
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add DiscoverPatcher.exe
+          git commit -q -m "DiscoverPatcher.exe from ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" exe-build
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [verify, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: DiscoverPatcher
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: DiscoverPatcher.exe
+          generate_release_notes: true

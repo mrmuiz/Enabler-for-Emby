@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AssemblyName>DiscoverPatcher</AssemblyName>
+    <RootNamespace>DiscoverPatcher.Gui</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>Discover Patcher</Product>
+    <Company>mrmuiz</Company>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Patcher.Core\Patcher.Core.csproj" />
+  </ItemGroup>
+
+</Project>
