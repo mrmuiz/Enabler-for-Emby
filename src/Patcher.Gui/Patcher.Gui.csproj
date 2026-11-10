@@ -7,15 +7,16 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>DiscoverPatcher</AssemblyName>
     <RootNamespace>DiscoverPatcher.Gui</RootNamespace>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <Product>Discover Patcher</Product>
     <Company>mrmuiz</Company>
-    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
     <ApplicationIcon>DiscoverPatcher.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="DiscoverPatcher.ico" LogicalName="DiscoverPatcher.ico" />
+    <EmbeddedResource Include="banner.jpg" LogicalName="banner.jpg" />
   </ItemGroup>
 
   <ItemGroup>
