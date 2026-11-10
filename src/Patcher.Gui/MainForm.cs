@@ -31,6 +31,8 @@ namespace DiscoverPatcher.Gui
             MinimumSize = new Size(640, 420);
             Size = new Size(760, 480);
             StartPosition = FormStartPosition.CenterScreen;
+            using (var ico = typeof(MainForm).Assembly.GetManifestResourceStream("DiscoverPatcher.ico"))
+                if (ico != null) Icon = new Icon(ico);
             AllowDrop = true;
 
             var intro = new Label
@@ -40,7 +42,7 @@ namespace DiscoverPatcher.Gui
                 Text = "Makes the official Emby for Android app load the Discover Media plugin: Discover in the menu and the " +
                        "Discover tile opening the Discover page. Nothing else changes; Emby Premiere is still needed.\r\n\r\n" +
                        "1. Download the APK for your device from emby.media (Emby for Android).\r\n" +
-                       "2. Choose it here (or drop it on this window) and click Patch.\r\n" +
+                       "2. Choose it here (or drop it on this window), click Patch and choose where to save the new APK.\r\n" +
                        "3. Uninstall the official Emby app once, then install the new \"-discover.apk\"."
             };
             var link = new LinkLabel { Text = DownloadUrl, AutoSize = true };
@@ -89,7 +91,24 @@ namespace DiscoverPatcher.Gui
         async Task RunPatch()
         {
             var input = _file.Text;
-            var output = EmbyApkPatcher.DefaultOutputPath(input);
+            string output;
+            using (var dlg = new SaveFileDialog
+            {
+                Title = "Save the patched APK as",
+                Filter = "Android app (*.apk)|*.apk",
+                InitialDirectory = Path.GetDirectoryName(Path.GetFullPath(input)),
+                FileName = Path.GetFileName(EmbyApkPatcher.DefaultOutputPath(input)),
+                OverwritePrompt = true
+            })
+            {
+                if (dlg.ShowDialog(this) != DialogResult.OK) return;
+                output = dlg.FileName;
+            }
+            if (string.Equals(Path.GetFullPath(output), Path.GetFullPath(input), StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(this, "Choose a different file name than the original APK.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             _patch.Enabled = _browse.Enabled = false;
             _log.Clear();
             try
