@@ -36,6 +36,18 @@ jobs:
           "$BT/apksigner" verify --verbose --print-certs emby-discover.apk
           "$BT/zipalign" -c -P 16 -v 4 emby-discover.apk | tail -3
           "$BT/aapt2" dump badging emby-discover.apk | head -5
+      - name: Test APKs (sign only / loader only), private artifact for diagnostics
+        run: |
+          D=src/Enabler.Cli/bin/Release/net8.0/discover-enabler.dll
+          mkdir testapks
+          dotnet $D emby.apk testapks/emby.apk --only sign --key ci-key.pfx
+          dotnet $D emby.apk testapks/emby.apk --only loader --key ci-key.pfx
+          ls -l testapks
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-apks
+          path: testapks/*.apk
+          retention-days: 1
       - name: Check patched files
         run: |
           unzip -p emby-discover.apk assets/www/index.html | grep -n "discover-web-loader.js"
