@@ -26,14 +26,20 @@ namespace DiscoverEnabler
             public List<string> Log = new List<string>();
         }
 
-        public static Result Patch(string inputApk, string outputApk, string keyPath, Action<string> progress = null)
+        /// <summary>Diagnostic: what to change. "all" is the normal patch.</summary>
+        public enum Scope { All, SignOnly, LoaderOnly }
+
+        public static Result Patch(string inputApk, string outputApk, string keyPath, Action<string> progress = null, Scope scope = Scope.All)
         {
             var r = new Result { OutputPath = outputApk };
             void Say(string m) { r.Log.Add(m); progress?.Invoke(m); }
+            if (scope != Scope.All) Say("TEST BUILD (" + scope + "): not the normal patch");
 
             Say("Reading " + Path.GetFileName(inputApk) + " ...");
             var bytes = File.ReadAllBytes(inputApk);
             var entries = ApkZip.Read(bytes);
+
+            if (scope == Scope.SignOnly) return SignOnly(entries, outputApk, keyPath, Say, r);
 
             var index = entries.FirstOrDefault(e => e.Name == IndexPath);
             var apphost = entries.FirstOrDefault(e => e.Name == AppHostPath);
@@ -60,14 +66,15 @@ namespace DiscoverEnabler
             var js = Encoding.UTF8.GetString(apphost.GetUncompressed());
             const string on = "features.restrictedplugins = true;";
             const string off = "features.restrictedplugins = false; /* Discover Enabler */";
-            if (js.Contains(on))
+            if (scope == Scope.LoaderOnly) Say("apphost.js: left unchanged (test build)");
+            else if (js.Contains(on))
             {
                 js = js.Replace(on, off);
                 Say("apphost.js: plugin pages allowed in the app (Discover in the menu)");
             }
             else if (js.Contains("features.restrictedplugins = false;")) Say("apphost.js: already patched");
             else Say("apphost.js: restriction not found (newer Emby version?) - menu entry may be missing");
-            Replace(entries, apphost, Encoding.UTF8.GetBytes(js));
+            if (scope != Scope.LoaderOnly) Replace(entries, apphost, Encoding.UTF8.GetBytes(js));
 
             // 3. the loader itself
             var loader = ReadResource("discover-web-loader.js");
@@ -83,6 +90,17 @@ namespace DiscoverEnabler
             var unsigned = ApkZip.Write(entries, out long cd, out long eocd);
             var signed = ApkSigner.AddV2(unsigned, cd, eocd, cert);
             File.WriteAllBytes(outputApk, signed);
+            Say("Done: " + outputApk);
+            return r;
+        }
+
+        static Result SignOnly(List<ZipEntry> entries, string outputApk, string keyPath, Action<string> Say, Result r)
+        {
+            Say("Signing only, nothing in the app is changed (key: " + keyPath + ") ...");
+            var cert = ApkSigner.LoadOrCreateKey(keyPath);
+            ApkSigner.AddV1(entries, cert);
+            var unsigned = ApkZip.Write(entries, out long cd, out long eocd);
+            File.WriteAllBytes(outputApk, ApkSigner.AddV2(unsigned, cd, eocd, cert));
             Say("Done: " + outputApk);
             return r;
         }

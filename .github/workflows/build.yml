@@ -100,6 +100,14 @@ jobs:
         with:
           name: DiscoverEnabler
           path: out/DiscoverEnabler.exe
+      - name: Test CLI for Windows (diagnostics, test builds only)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: dotnet publish src/Enabler.Cli/Enabler.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:InvariantGlobalization=true -o outcli
+      - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: cli-win-test
+          path: outcli/discover-enabler.exe
       - name: Screenshot of the window
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         shell: pwsh
@@ -163,6 +171,7 @@ jobs:
           cp art/DiscoverEnabler/DiscoverEnabler.exe pub/
           cp art/cli-*/*.tar.gz pub/
           cp art/screenshot/screenshot.png pub/ 2>/dev/null || true
+          cp art/cli-win-test/discover-enabler.exe pub/discover-enabler-test-win-x64.exe 2>/dev/null || true
           cd pub
           git init -q -b exe-build
           git config user.name "github-actions"
