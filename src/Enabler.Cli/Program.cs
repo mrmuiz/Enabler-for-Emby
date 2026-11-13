@@ -3,14 +3,17 @@ using System.IO;
 using System.Linq;
 using DiscoverEnabler;
 
-// discover-enabler --device arm64|armv7|firetv|x64|x86 [--out folder] [--key file.pfx]
-// discover-enabler <emby.apk> [output.apk] [--key file.pfx]
+// discover-enabler --device arm64|armv7|firetv|x64|x86 [--out folder] [--key file.pfx] [--no-server-menu]
+// discover-enabler <emby.apk> [output.apk] [--key file.pfx] [--no-server-menu]
 string input = null, output = null, key = null, device = null, outDir = null, only = null;
+var options = new EmbyApkPatcher.Options();
 for (int i = 0; i < args.Length; i++)
 {
     var a = args[i];
     if ((a == "--key") && i + 1 < args.Length) key = args[++i];
     else if (a == "--only" && i + 1 < args.Length) only = args[++i];
+    else if (a == "--no-server-menu") options.ServerMenu = false;
+    else if (a == "--server-menu") options.ServerMenu = true;
     else if ((a == "--device" || a == "-d") && i + 1 < args.Length) device = args[++i];
     else if ((a == "--out" || a == "-o") && i + 1 < args.Length) outDir = args[++i];
     else if (a == "--help" || a == "-h") { input = null; device = null; break; }
@@ -32,6 +35,7 @@ if (input == null && device == null)
     Console.WriteLine("Diagnostics: --only sign    only re-sign, change nothing in the app");
     Console.WriteLine("             --only loader  add the loader but leave apphost.js alone");
     Console.WriteLine("Options: --key <file.pfx>   signing key (default: " + ApkSigner.DefaultKeyPath() + ")");
+    Console.WriteLine("         --no-server-menu   do not show Emby's server menu (server settings) in the app");
     return 2;
 }
 
@@ -62,7 +66,7 @@ try
     Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output)));
     var scope = only == "sign" ? EmbyApkPatcher.Scope.SignOnly : only == "loader" ? EmbyApkPatcher.Scope.LoaderOnly : EmbyApkPatcher.Scope.All;
     if (scope != EmbyApkPatcher.Scope.All) output = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(output)), Path.GetFileNameWithoutExtension(output) + "-test-" + only + ".apk");
-    EmbyApkPatcher.Patch(input, output, key ?? ApkSigner.DefaultKeyPath(), Console.WriteLine, scope);
+    EmbyApkPatcher.Patch(input, output, key ?? ApkSigner.DefaultKeyPath(), Console.WriteLine, scope, options);
     Console.WriteLine();
     Console.WriteLine("Uninstall the official Emby app once, then install " + Path.GetFileName(output) + " on your device.");
     return 0;

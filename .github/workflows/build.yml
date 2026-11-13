@@ -50,7 +50,8 @@ jobs:
           retention-days: 1
       - name: Check patched files
         run: |
-          unzip -p emby-discover.apk assets/www/index.html | grep -n "discover-web-loader.js"
+          unzip -p emby-discover.apk assets/www/index.html | grep -n "discover-web-loader.js\|discover-options.js"
+          unzip -p emby-discover.apk assets/www/discover-options.js
           unzip -p emby-discover.apk assets/www/native/android/apphost.js | grep -n "restrictedplugins"
           unzip -l emby-discover.apk assets/www/discover-web-loader.js
           ls -l emby.apk emby-discover.apk
@@ -59,6 +60,10 @@ jobs:
           dotnet src/Enabler.Cli/bin/Release/net8.0/discover-enabler.dll --device firetv --out dl --key ci-key.pfx
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           "$BT/apksigner" verify dl/Emby-FireTV-Discover.apk && echo "fire tv OK"
+      - name: Server menu off
+        run: |
+          dotnet src/Enabler.Cli/bin/Release/net8.0/discover-enabler.dll emby.apk nomenu.apk --key ci-key.pfx --no-server-menu
+          unzip -p nomenu.apk assets/www/discover-options.js | grep -q "__discoverAdminMenu = false" && echo "server menu off OK"
       - name: Patch again (same key, already patched input)
         run: |
           dotnet src/Enabler.Cli/bin/Release/net8.0/discover-enabler.dll emby-discover.apk twice.apk --key ci-key.pfx
@@ -141,6 +146,58 @@ jobs:
           path: out/screenshot.png
           if-no-files-found: ignore
 
+  android:
+    # Discover Patcher: the Android app that downloads, patches and installs Emby on the device itself.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.6.0
+      - name: Release keystore (from secrets, optional)
+        env:
+          KS: ${{ secrets.PATCHER_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/patcher.jks"
+            echo "PATCHER_KEYSTORE=$RUNNER_TEMP/patcher.jks" >> "$GITHUB_ENV"
+          else
+            echo "No PATCHER_KEYSTORE_B64 secret: building a debug-signed test APK only."
+          fi
+      - name: Build
+        working-directory: android
+        env:
+          PATCHER_KEYSTORE_PASSWORD: ${{ secrets.PATCHER_KEYSTORE_PASSWORD }}
+          PATCHER_KEY_ALIAS: ${{ secrets.PATCHER_KEY_ALIAS }}
+          PATCHER_KEY_PASSWORD: ${{ secrets.PATCHER_KEY_PASSWORD }}
+        run: |
+          mkdir -p ../apk
+          if [ -n "$PATCHER_KEYSTORE" ]; then
+            gradle :app:assembleRelease --no-daemon
+            cp app/build/outputs/apk/release/app-release.apk ../apk/DiscoverPatcher.apk
+          else
+            gradle :app:assembleDebug --no-daemon
+            cp app/build/outputs/apk/debug/app-debug.apk ../apk/DiscoverPatcher-test.apk
+          fi
+          ls -l ../apk
+      - name: Check APK
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          for f in apk/*.apk; do
+            "$BT/apksigner" verify --print-certs "$f" | head -3
+            "$BT/aapt2" dump badging "$f" | grep -E "^package|application-label:|locales" | head -5
+            unzip -l "$f" | grep -E "discover-web-loader.js|index-snippet.html"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: apk/*.apk
+
   cli:
     # Command-line version for Linux and macOS (one self-contained file each).
     runs-on: ubuntu-latest
@@ -168,8 +225,9 @@ jobs:
 
   test-builds:
     # Puts the latest test builds on branch exe-build (artifacts are not downloadable everywhere).
-    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-    needs: [windows, cli]
+    # The Android build is optional here: Windows/CLI test builds are still published if it fails.
+    if: ${{ always() && !startsWith(github.ref, 'refs/tags/') && needs.windows.result == 'success' && needs.cli.result == 'success' }}
+    needs: [windows, cli, android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -184,6 +242,7 @@ jobs:
           cp art/cli-*/*.tar.gz pub/
           cp art/screenshot/screenshot.png pub/ 2>/dev/null || true
           cp art/cli-win-test/discover-enabler.exe pub/discover-enabler-test-win-x64.exe 2>/dev/null || true
+          cp art/android/*.apk pub/ 2>/dev/null || true
           cd pub
           git init -q -b exe-build
           git config user.name "github-actions"
@@ -195,7 +254,7 @@ jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release_tag != ''
 
-    needs: [verify, windows, cli]
+    needs: [verify, windows, cli, android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -210,6 +269,8 @@ jobs:
           cp art/DiscoverEnabler/DiscoverEnabler.exe .
           zip -q -9 rel/DiscoverEnabler-windows-x64.zip DiscoverEnabler.exe README.md
           cp art/cli-*/*.tar.gz rel/
+          # Only a release-signed patcher goes into a release (a debug build could not be updated later).
+          cp art/android/DiscoverPatcher.apk rel/ 2>/dev/null || echo "No release-signed DiscoverPatcher.apk (secrets missing)"
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}

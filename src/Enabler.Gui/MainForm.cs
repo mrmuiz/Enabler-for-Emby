@@ -47,10 +47,34 @@ namespace DiscoverEnabler.Gui
         }
     }
 
-    /// <summary>Texts in Dutch or English, following the Windows language.</summary>
+    /// <summary>UI texts following the Windows display language: English (default), Dutch, German, Norwegian.
+    /// Log and error details from the patcher itself stay in English.</summary>
     internal static class T
     {
-        public static string S(string en, string nl) => en;   // English only
+        static readonly string Lang = Detect();
+        static string Detect()
+        {
+            var l = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+            if (l == "nl" || l == "de") return l;
+            if (l == "nb" || l == "no" || l == "nn") return "nb";
+            return "en";
+        }
+        public static string S(string en, string nl, string de, string nb) =>
+            Lang == "nl" ? nl : Lang == "de" ? de : Lang == "nb" ? nb : en;
+
+        /// <summary>Card description for an Emby build, translated.</summary>
+        public static string Build(EmbyBuild b)
+        {
+            switch (b.Id)
+            {
+                case "arm64": return S("Most phones and tablets", "De meeste telefoons en tablets", "Die meisten Smartphones und Tablets", "De fleste telefoner og nettbrett");
+                case "armv7": return S("Android TV, TV boxes and older phones", "Android TV, tv-boxen en oudere telefoons", "Android TV, TV-Boxen und ältere Smartphones", "Android TV, TV-bokser og eldre telefoner");
+                case "firetv": return S("Amazon Fire TV and Fire tablets", "Amazon Fire TV en Fire-tablets", "Amazon Fire TV und Fire-Tablets", "Amazon Fire TV og Fire-nettbrett");
+                case "x64": return S("PCs, Chromebooks and emulators", "Pc's, Chromebooks en emulators", "PCs, Chromebooks und Emulatoren", "PC-er, Chromebooks og emulatorer");
+                case "x86": return S("Older Intel devices", "Oudere Intel-apparaten", "Ältere Intel-Geräte", "Eldre Intel-enheter");
+                default: return b.Description;
+            }
+        }
     }
 
     /// <summary>Selectable card for one Emby APK build (arm64, armv7, ...).</summary>
@@ -181,11 +205,28 @@ namespace DiscoverEnabler.Gui
         readonly LinkLabel _own = new LinkLabel();
         readonly Label _ownFile = new Label { AutoSize = true, ForeColor = Theme.Accent, Font = Theme.Font(9f, FontStyle.Bold) };
         readonly TextBox _folder = new TextBox { BorderStyle = BorderStyle.FixedSingle, BackColor = Theme.Card, ForeColor = Theme.Text, Font = Theme.Font(10f) };
-        readonly FlatBtn _browse = new FlatBtn(T.S("Browse...", "Bladeren..."), false) { Width = 110 };
+        readonly FlatBtn _browse = new FlatBtn(T.S("Browse...", "Bladeren...", "Durchsuchen...", "Bla gjennom..."), false) { Width = 110 };
         readonly FlatBtn _go = new FlatBtn("", true) { Width = 260 };
-        readonly FlatBtn _openFolder = new FlatBtn(T.S("Open folder", "Map openen"), false) { Width = 130, Visible = false };
+        readonly FlatBtn _openFolder = new FlatBtn(T.S("Open folder", "Map openen", "Ordner öffnen", "Åpne mappe"), false) { Width = 130, Visible = false };
         readonly Bar _bar = new Bar { Visible = false };
         readonly Label _status = new Label { AutoSize = false, Height = 40, ForeColor = Theme.Muted, Font = Theme.Font(9.5f) };
+        readonly CheckBox _serverMenu = new CheckBox
+        {
+            AutoSize = true, Checked = true, ForeColor = Theme.Text, BackColor = Theme.Bg, Font = Theme.Font(10f),
+            FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand,
+            Text = T.S("Show the server menu (server settings) in the app",
+                       "Servermenu (serverinstellingen) in de app tonen",
+                       "Servermenü (Servereinstellungen) in der App anzeigen",
+                       "Vis servermenyen (serverinnstillinger) i appen")
+        };
+        readonly Label _serverMenuHint = new Label
+        {
+            AutoSize = true, ForeColor = Theme.Muted, Font = Theme.Font(8.5f),
+            Text = T.S("Only visible to administrators; the server decides the permissions.",
+                       "Alleen zichtbaar voor beheerders; de server bepaalt de rechten.",
+                       "Nur für Administratoren sichtbar; der Server entscheidet über die Rechte.",
+                       "Bare synlig for administratorer; serveren bestemmer rettighetene.")
+        };
         string _ownApk, _lastOutput;
 
         static readonly string SettingsPath = Path.Combine(Path.GetDirectoryName(ApkSigner.DefaultKeyPath()), "settings.txt");
@@ -200,7 +241,7 @@ namespace DiscoverEnabler.Gui
             Font = Theme.Font(9.5f);
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
-            ClientSize = new Size(900, 690);
+            ClientSize = new Size(900, 760);
             StartPosition = FormStartPosition.CenterScreen;
             AllowDrop = true;
             using (var ico = typeof(MainForm).Assembly.GetManifestResourceStream("DiscoverEnabler.ico"))
@@ -215,21 +256,24 @@ namespace DiscoverEnabler.Gui
             int y = 0;
             Control Add(Control c, int x, int top) { c.Location = new Point(32 + x, 22 + top); body.Controls.Add(c); return c; }
 
-            Add(Head("1", T.S("Choose your device", "Kies je apparaat")), 0, y); y += 36;
-            foreach (var b in EmbyDownloads.Builds) AddCard(b.Id, b.Title, b.Description, null);
+            Add(Head("1", T.S("Choose your device", "Kies je apparaat", "Wähle dein Gerät", "Velg enheten din")), 0, y); y += 36;
+            foreach (var b in EmbyDownloads.Builds) AddCard(b.Id, b.Title, T.Build(b), null);
             Add(_cards, 0, y); y += 106;
 
-            _own.Text = T.S("Or patch an APK you already downloaded...", "Of patch een APK die je al hebt gedownload...");
+            _own.Text = T.S("Or patch an APK you already downloaded...", "Of patch een APK die je al hebt gedownload...", "Oder eine bereits heruntergeladene APK patchen...", "Eller patch en APK du allerede har lastet ned...");
             _own.AutoSize = true; _own.LinkColor = Theme.Muted; _own.ActiveLinkColor = Theme.Accent; _own.Font = Theme.Font(9f);
             _own.LinkBehavior = LinkBehavior.HoverUnderline;
             _own.LinkClicked += (s, e) => ChooseOwn();
             Add(_own, 0, y);
             Add(_ownFile, 300, y); y += 42;
 
-            Add(Head("2", T.S("Save the patched app in", "Gepatchte app opslaan in")), 0, y); y += 36;
+            Add(Head("2", T.S("Save the patched app in", "Gepatchte app opslaan in", "Gepatchte App speichern in", "Lagre den patchede appen i")), 0, y); y += 36;
             _folder.Width = 836 - _browse.Width - 10;
             Add(_folder, 0, y + 4);
-            Add(_browse, _folder.Right - 32 + 10, y); y += 56;
+            Add(_browse, _folder.Right - 32 + 10, y); y += 52;
+
+            Add(_serverMenu, 0, y); y += 28;
+            Add(_serverMenuHint, 22, y); y += 34;
 
             Add(_go, 0, y);
             Add(_openFolder, _go.Right - 32 + 14, y + 6); y += 62;
@@ -238,7 +282,10 @@ namespace DiscoverEnabler.Gui
 
             // footer
             var footer = new Panel { Dock = DockStyle.Bottom, Height = 34, BackColor = Color.FromArgb(10, 14, 20), Padding = new Padding(32, 0, 32, 0) };
-            const string premiere = "Emby is free to browse your media, while playback requires Emby Premiere.";
+            string premiere = T.S("Emby is free to browse your media, while playback requires Emby Premiere.",
+                                  "Bladeren door je media is gratis in Emby; afspelen vereist Emby Premiere.",
+                                  "Mit Emby kannst du deine Medien kostenlos durchsuchen; die Wiedergabe erfordert Emby Premiere.",
+                                  "Emby er gratis for å bla i mediene dine, mens avspilling krever Emby Premiere.");
             var prem = new LinkLabel { Text = premiere, AutoSize = true, ForeColor = Theme.Muted, LinkColor = Theme.Accent, ActiveLinkColor = Theme.Text, Font = Theme.Font(8.5f), LinkBehavior = LinkBehavior.HoverUnderline, Location = new Point(32, 9) };
             prem.LinkArea = new LinkArea(premiere.IndexOf("Emby Premiere"), "Emby Premiere".Length);
             prem.LinkClicked += (s, e) => Process.Start(new ProcessStartInfo(PremiereUrl) { UseShellExecute = true });
@@ -253,7 +300,7 @@ namespace DiscoverEnabler.Gui
 
             _browse.Click += (s, e) =>
             {
-                using (var dlg = new FolderBrowserDialog { SelectedPath = _folder.Text, Description = T.S("Where should the patched APK go?", "Waar moet de gepatchte APK komen?"), UseDescriptionForTitle = true })
+                using (var dlg = new FolderBrowserDialog { SelectedPath = _folder.Text, Description = T.S("Where should the patched APK go?", "Waar moet de gepatchte APK komen?", "Wohin soll die gepatchte APK?", "Hvor skal den patchede APK-en lagres?"), UseDescriptionForTitle = true })
                     if (dlg.ShowDialog(this) == DialogResult.OK) _folder.Text = dlg.SelectedPath;
             };
             _go.Click += async (s, e) => await Run();
@@ -268,6 +315,10 @@ namespace DiscoverEnabler.Gui
                 var files = (string[])e.Data.GetData(DataFormats.FileDrop);
                 if (files != null && files.Length > 0 && files[0].EndsWith(".apk", StringComparison.OrdinalIgnoreCase)) SetOwn(files[0]);
             };
+
+            _serverMenu.FlatAppearance.BorderColor = Theme.Border;
+            _serverMenu.FlatAppearance.CheckedBackColor = Theme.Accent;
+            _serverMenu.FlatAppearance.MouseOverBackColor = Theme.CardHover;
 
             LoadSettings();
             UpdateGoText();
@@ -317,7 +368,7 @@ namespace DiscoverEnabler.Gui
 
         void ChooseOwn()
         {
-            using (var dlg = new OpenFileDialog { Filter = "Emby for Android (*.apk)|*.apk", Title = T.S("Choose the Emby for Android APK", "Kies de APK van Emby for Android") })
+            using (var dlg = new OpenFileDialog { Filter = "Emby for Android (*.apk)|*.apk", Title = T.S("Choose the Emby for Android APK", "Kies de APK van Emby for Android", "APK von Emby for Android auswählen", "Velg APK-en for Emby for Android") })
                 if (dlg.ShowDialog(this) == DialogResult.OK) SetOwn(dlg.FileName);
         }
 
@@ -331,7 +382,7 @@ namespace DiscoverEnabler.Gui
 
         void UpdateGoText()
         {
-            _go.Text = _ownApk != null ? T.S("Patch", "Patchen") : T.S("Download and patch", "Downloaden en patchen");
+            _go.Text = _ownApk != null ? T.S("Patch", "Patchen", "Patchen", "Patch") : T.S("Download and patch", "Downloaden en patchen", "Herunterladen und patchen", "Last ned og patch");
             _go.Enabled = _ownApk != null || SelectedCard() != null;
             _go.Invalidate();
         }
@@ -345,7 +396,7 @@ namespace DiscoverEnabler.Gui
         async Task Run()
         {
             var folder = _folder.Text.Trim();
-            if (string.IsNullOrEmpty(folder)) { Status(T.S("Choose a folder first.", "Kies eerst een map."), true); return; }
+            if (string.IsNullOrEmpty(folder)) { Status(T.S("Choose a folder first.", "Kies eerst een map.", "Wähle zuerst einen Ordner.", "Velg en mappe først."), true); return; }
             try { Directory.CreateDirectory(folder); }
             catch (Exception ex) { Status(ex.Message, true); return; }
 
@@ -369,20 +420,23 @@ namespace DiscoverEnabler.Gui
                     input = tempDownload;
                 }
                 _bar.Value = -1;
-                Status(T.S("Patching and signing...", "Patchen en ondertekenen..."));
-                await Task.Run(() => EmbyApkPatcher.Patch(input, output, ApkSigner.DefaultKeyPath(), null));
+                Status(T.S("Patching and signing...", "Patchen en ondertekenen...", "Patchen und signieren...", "Patcher og signerer..."));
+                var options = new EmbyApkPatcher.Options { ServerMenu = _serverMenu.Checked };
+                await Task.Run(() => EmbyApkPatcher.Patch(input, output, ApkSigner.DefaultKeyPath(), null, EmbyApkPatcher.Scope.All, options));
                 _bar.Value = 100;
                 _lastOutput = output;
                 _openFolder.Visible = true;
-                Status(T.S("Done: ", "Klaar: ") + Path.GetFileName(output) + "\r\n" +
+                Status(T.S("Done: ", "Klaar: ", "Fertig: ", "Ferdig: ") + Path.GetFileName(output) + "\r\n" +
                        T.S("Uninstall the official Emby app once, then install this file on your device.",
-                           "Verwijder eenmalig de officiële Emby-app en installeer dan dit bestand op je apparaat."));
+                           "Verwijder eenmalig de officiële Emby-app en installeer dan dit bestand op je apparaat.",
+                           "Deinstalliere einmalig die offizielle Emby-App und installiere dann diese Datei auf deinem Gerät.",
+                           "Avinstaller den offisielle Emby-appen én gang, og installer deretter denne filen på enheten."));
                 SaveSettings();
             }
             catch (Exception ex)
             {
                 _bar.Value = 0;
-                Status(T.S("Error: ", "Fout: ") + ex.Message, true);
+                Status(T.S("Error: ", "Fout: ", "Fehler: ", "Feil: ") + ex.Message, true);
             }
             finally
             {
@@ -393,7 +447,7 @@ namespace DiscoverEnabler.Gui
 
         async Task Download(EmbyBuild build, string path)
         {
-            Status("Downloading " + build.File + " from Emby (GitHub)...");
+            Status(T.S("Downloading ", "Downloaden: ", "Herunterladen: ", "Laster ned ") + build.File + T.S(" from Emby (GitHub)...", " van Emby (GitHub)...", " von Emby (GitHub)...", " fra Emby (GitHub)..."));
             _bar.Value = -1;
             await EmbyDownloads.Download(build, path, (done, total) =>
             {
@@ -401,7 +455,7 @@ namespace DiscoverEnabler.Gui
                 BeginInvoke(new Action(() =>
                 {
                     _bar.Value = (int)(done * 100 / total);
-                    Status("Downloading from Emby (GitHub)... " + (done / 1048576) + " / " + (total / 1048576) + " MB");
+                    Status(T.S("Downloading from Emby (GitHub)... ", "Downloaden van Emby (GitHub)... ", "Herunterladen von Emby (GitHub)... ", "Laster ned fra Emby (GitHub)... ") + (done / 1048576) + " / " + (total / 1048576) + " MB");
                 }));
             });
         }
@@ -409,7 +463,7 @@ namespace DiscoverEnabler.Gui
         void SetBusy(bool busy)
         {
             _go.Enabled = !busy && (_ownApk != null || SelectedCard() != null);
-            _browse.Enabled = _cards.Enabled = _own.Enabled = !busy;
+            _browse.Enabled = _cards.Enabled = _own.Enabled = _serverMenu.Enabled = !busy;
             _bar.Visible = true;
             _go.Invalidate();
         }
@@ -417,6 +471,7 @@ namespace DiscoverEnabler.Gui
         void LoadSettings()
         {
             string folder = null, arch = "arm64";
+            bool serverMenu = true;
             try
             {
                 if (File.Exists(SettingsPath))
@@ -424,6 +479,7 @@ namespace DiscoverEnabler.Gui
                     {
                         if (line.StartsWith("folder=")) folder = line.Substring(7);
                         if (line.StartsWith("arch=")) arch = line.Substring(5);
+                        if (line.StartsWith("servermenu=")) serverMenu = line.Substring(11) != "0";
                     }
             }
             catch { }
@@ -431,6 +487,7 @@ namespace DiscoverEnabler.Gui
                 folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
             _folder.Text = folder;
             foreach (ArchCard c in _cards.Controls) c.Selected = c.Key == arch;
+            _serverMenu.Checked = serverMenu;
         }
 
         void SaveSettings()
@@ -438,7 +495,7 @@ namespace DiscoverEnabler.Gui
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath));
-                File.WriteAllLines(SettingsPath, new[] { "folder=" + _folder.Text, "arch=" + (SelectedCard()?.Key ?? "") });
+                File.WriteAllLines(SettingsPath, new[] { "folder=" + _folder.Text, "arch=" + (SelectedCard()?.Key ?? ""), "servermenu=" + (_serverMenu.Checked ? "1" : "0") });
             }
             catch { }
         }

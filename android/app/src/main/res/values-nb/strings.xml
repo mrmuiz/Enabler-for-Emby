@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tagline">Installer og oppdater Emby med Discover.</string>
+    <string name="status_header">EMBY-STATUS</string>
+    <string name="status_checking_device">Sjekker Emby på denne enheten…</string>
+    <string name="status_hint">Sjekkes når appen åpnes; ingenting installeres før du velger det.</string>
+    <string name="actions_header">HANDLINGER</string>
+    <string name="log_header">AKTIVITETSLOGG</string>
+    <string name="btn_install">Last ned og installer Emby med Discover</string>
+    <string name="btn_update">Oppdater: last ned og patch nyeste Emby</string>
+    <string name="btn_force">Bygg på nytt (tving)</string>
+    <string name="btn_remove">Avinstaller eksisterende Emby-app</string>
+    <string name="btn_working">Laster ned og patcher…</string>
+    <string name="btn_wait">Vent litt…</string>
+    <string name="switch_server_menu">Vis servermenyen (serverinnstillinger) i appen</string>
+    <string name="switch_server_menu_hint">Bare synlig for administratorer; serveren bestemmer rettighetene. Endret? Bygg på nytt etterpå.</string>
+    <string name="popup_installed_title">Emby er installert</string>
+    <string name="popup_installed_text">Emby med Discover er klar.</string>
+    <string name="popup_installed_text_version">Emby med Discover er klar (versjon %1$s).</string>
+    <string name="popup_close">Lukk</string>
+    <string name="popup_open_emby">Åpne Emby</string>
+    <string name="state_not_installed">Emby er ikke installert ennå — klar for første installasjon</string>
+    <string name="state_foreign">En Emby-app (versjon %1$s) med en annen signatur er allerede installert. Avinstaller den først; Android kan ikke bygge om en eksisterende app.</string>
+    <string name="state_patched_checking">Patchet Emby %1$s funnet — sjekker på nett…</string>
+    <string name="state_patched_check_failed">Patchet Emby %1$s installert — oppdateringssjekk mislyktes, prøv igjen senere</string>
+    <string name="state_patched_unknown">Patchet Emby %1$s installert — bygg på nytt for å oppdatere</string>
+    <string name="state_update_available">Ny Emby-versjon tilgjengelig (installert: %1$s)</string>
+    <string name="state_menu_changed">Innstillingen for servermenyen er endret — bygg på nytt for å bruke den</string>
+    <string name="state_up_to_date">Den patchede Emby-appen din (%1$s) er oppdatert</string>
+    <string name="step_preparing">Forbereder…</string>
+    <string name="step_downloading">Laster ned Emby: %1$d%%</string>
+    <string name="step_verifying">Kontrollerer nedlastingen…</string>
+    <string name="step_patching">Patcher Emby…</string>
+    <string name="step_signing">Patching ferdig — signerer APK…</string>
+    <string name="step_preparing_install">Signering ferdig — forbereder installasjon…</string>
+    <string name="step_installing">Installasjon startet — venter på Android…</string>
+    <string name="step_done_see_log">Ferdig — se aktivitetsloggen</string>
+    <string name="install_success">Installasjon fullført: Emby ble installert.</string>
+    <string name="install_conflict">Konflikt: avinstaller den eksisterende Emby-appen først (annen signatur).</string>
+    <string name="install_failed">Installasjon mislyktes (%1$d): %2$s</string>
+    <string name="notif_channel">Emby-oppdateringer</string>
+    <string name="notif_update_title">Ny Emby-versjon tilgjengelig</string>
+    <string name="notif_update_text">Åpne Discover Patcher for å laste ned og installere nyeste beta.</string>
+</resources>

@@ -3,3 +3,8 @@ obj/
 *.apk
 *.pfx
 out/
+android/.gradle/
+android/**/build/
+android/local.properties
+*.jks
+*.keystore
