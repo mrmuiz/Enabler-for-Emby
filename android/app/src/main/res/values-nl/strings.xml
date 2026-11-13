@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tagline">Emby met Discover installeren en bijwerken.</string>
+    <string name="status_header">EMBY-STATUS</string>
+    <string name="status_checking_device">Emby op dit apparaat controleren…</string>
+    <string name="status_hint">Controle bij het openen; installeren gebeurt pas na jouw keuze.</string>
+    <string name="actions_header">ACTIES</string>
+    <string name="log_header">ACTIVITEITENLOG</string>
+    <string name="btn_install">Emby met Discover downloaden en installeren</string>
+    <string name="btn_update">Bijwerken: nieuwste Emby downloaden en patchen</string>
+    <string name="btn_force">Opnieuw bouwen (forceren)</string>
+    <string name="btn_remove">Bestaande Emby-app verwijderen</string>
+    <string name="btn_working">Bezig met downloaden en patchen…</string>
+    <string name="btn_wait">Even wachten…</string>
+    <string name="switch_server_menu">Servermenu (serverinstellingen) in de app tonen</string>
+    <string name="switch_server_menu_hint">Alleen zichtbaar voor beheerders; de server bepaalt de rechten. Gewijzigd? Bouw daarna opnieuw.</string>
+    <string name="popup_installed_title">Emby is geïnstalleerd</string>
+    <string name="popup_installed_text">Emby met Discover staat klaar.</string>
+    <string name="popup_installed_text_version">Emby met Discover staat klaar (versie %1$s).</string>
+    <string name="popup_close">Sluiten</string>
+    <string name="popup_open_emby">Emby openen</string>
+    <string name="state_not_installed">Emby is nog niet geïnstalleerd — klaar voor de eerste installatie</string>
+    <string name="state_foreign">Er staat al een Emby-app (versie %1$s) met een andere handtekening. Verwijder die eerst; Android kan een bestaande app niet ombouwen.</string>
+    <string name="state_patched_checking">Gepatchte Emby %1$s gevonden — online controleren…</string>
+    <string name="state_patched_check_failed">Gepatchte Emby %1$s geïnstalleerd — updatecontrole mislukt, probeer later opnieuw</string>
+    <string name="state_patched_unknown">Gepatchte Emby %1$s geïnstalleerd — bouw opnieuw om bij te werken</string>
+    <string name="state_update_available">Nieuwe Emby-versie beschikbaar (geïnstalleerd: %1$s)</string>
+    <string name="state_menu_changed">Servermenu-instelling gewijzigd — bouw opnieuw om toe te passen</string>
+    <string name="state_up_to_date">Je gepatchte Emby-app (%1$s) is actueel</string>
+    <string name="step_preparing">Voorbereiden…</string>
+    <string name="step_downloading">Emby downloaden: %1$d%%</string>
+    <string name="step_verifying">Download controleren…</string>
+    <string name="step_patching">Emby patchen…</string>
+    <string name="step_signing">Patchen voltooid — APK ondertekenen…</string>
+    <string name="step_preparing_install">Ondertekenen voltooid — installatie voorbereiden…</string>
+    <string name="step_installing">Installatie gestart — wacht op Android…</string>
+    <string name="step_done_see_log">Klaar — zie het activiteitenlog</string>
+    <string name="install_success">Installatie voltooid: Emby is succesvol geïnstalleerd.</string>
+    <string name="install_conflict">Conflict: verwijder eerst de bestaande Emby-app (andere handtekening).</string>
+    <string name="install_failed">Installatie mislukt (%1$d): %2$s</string>
+    <string name="notif_channel">Emby-updates</string>
+    <string name="notif_update_title">Nieuwe Emby-versie beschikbaar</string>
+    <string name="notif_update_text">Open Discover Patcher om de nieuwste bèta te downloaden en te installeren.</string>
+</resources>

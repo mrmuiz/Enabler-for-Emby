@@ -9,7 +9,8 @@ namespace DiscoverEnabler
     /// <summary>
     /// Patches the official Emby for Android APK (from emby.media / MediaBrowser/Emby.Releases) so it loads
     /// Discover Media. Only two things change in the app's built-in web client:
-    ///   1. index.html loads discover-web-loader.js (tile -> Discover page, Request button everywhere);
+    ///   1. index.html loads discover-options.js and discover-web-loader.js (tile -> Discover page,
+    ///      Request button everywhere, optionally the server menu);
     ///   2. apphost.js no longer reports "restrictedplugins", so plugin pages (Discover) show in the menu.
     /// Everything else (Emby Premiere, playback, DRM) stays exactly as it is. The APK is then re-signed.
     /// </summary>
@@ -19,6 +20,15 @@ namespace DiscoverEnabler
         const string IndexPath = "assets/www/index.html";
         const string AppHostPath = "assets/www/native/android/apphost.js";
         const string LoaderPath = "assets/www/discover-web-loader.js";
+        const string OptionsName = "discover-options.js";
+        const string OptionsPath = "assets/www/" + OptionsName;
+
+        /// <summary>User choices that are baked into the patched app.</summary>
+        public sealed class Options
+        {
+            /// <summary>Show Emby's server menu (server settings) in the app. Server permissions still apply.</summary>
+            public bool ServerMenu = true;
+        }
 
         public sealed class Result
         {
@@ -29,8 +39,9 @@ namespace DiscoverEnabler
         /// <summary>Diagnostic: what to change. "all" is the normal patch.</summary>
         public enum Scope { All, SignOnly, LoaderOnly }
 
-        public static Result Patch(string inputApk, string outputApk, string keyPath, Action<string> progress = null, Scope scope = Scope.All)
+        public static Result Patch(string inputApk, string outputApk, string keyPath, Action<string> progress = null, Scope scope = Scope.All, Options options = null)
         {
+            options = options ?? new Options();
             var r = new Result { OutputPath = outputApk };
             void Say(string m) { r.Log.Add(m); progress?.Invoke(m); }
             if (scope != Scope.All) Say("TEST BUILD (" + scope + "): not the normal patch");
@@ -49,15 +60,22 @@ namespace DiscoverEnabler
 
             // 1. index.html
             var html = Encoding.UTF8.GetString(index.GetUncompressed());
+            string optionsTag = "<script src=\"" + OptionsName + "\"></script>";
             if (html.Contains(Marker))
             {
                 Say("index.html: already patched");
+                if (!html.Contains(optionsTag))
+                {
+                    // Patched by an older version: put the options script right before the loader.
+                    int tag = html.LastIndexOf("<script", html.IndexOf(Marker, StringComparison.Ordinal), StringComparison.OrdinalIgnoreCase);
+                    if (tag >= 0) { html = html.Substring(0, tag) + optionsTag + "\n    " + html.Substring(tag); Say("index.html: options script added"); }
+                }
             }
             else
             {
                 int at = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
                 if (at < 0) throw new InvalidDataException("index.html has no </body>; unknown Emby version");
-                html = html.Substring(0, at) + "    <script src=\"" + Marker + "\" defer></script>\n" + html.Substring(at);
+                html = html.Substring(0, at) + "    " + optionsTag + "\n    <script src=\"" + Marker + "\" defer></script>\n" + html.Substring(at);
                 Say("index.html: Discover loader added");
             }
             Replace(entries, index, Encoding.UTF8.GetBytes(html));
@@ -83,7 +101,14 @@ namespace DiscoverEnabler
             else entries.Insert(entries.IndexOf(index) + 1, ZipEntry.Create(LoaderPath, loader, true, index));
             Say("discover-web-loader.js: added");
 
-            // 4. sign
+            // 4. the options read by the loader
+            var opts = Encoding.UTF8.GetBytes("window.__discoverAdminMenu = " + (options.ServerMenu ? "true" : "false") + ";\n");
+            var oldOpts = entries.FirstOrDefault(e => e.Name == OptionsPath);
+            if (oldOpts != null) Replace(entries, oldOpts, opts);
+            else entries.Insert(entries.IndexOf(entries.First(e => e.Name == LoaderPath)) + 1, ZipEntry.Create(OptionsPath, opts, true, index));
+            Say("discover-options.js: server menu " + (options.ServerMenu ? "on" : "off"));
+
+            // 5. sign
             Say("Signing (key: " + keyPath + ") ...");
             var cert = ApkSigner.LoadOrCreateKey(keyPath);
             ApkSigner.AddV1(entries, cert);

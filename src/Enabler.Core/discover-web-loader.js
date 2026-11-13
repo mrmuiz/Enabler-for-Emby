@@ -1,22 +1,53 @@
-/* Discover Media - lader voor de Emby-webclient (server-kant).
- *
- * De plugin zet dit script in de index.html van de webclient op de server, zodat het op ELKE
- * pagina draait (de browser en apps die de webclient van de server laden). Het doet twee dingen:
- *   1. Een tik op de tegel/menu-ingang "Discover Media" (het kanaal) opent meteen de Discover-pagina.
- *   2. Het Aanvragen-knop-script wordt globaal geladen, zodat de knop ook op gewone Emby-detailpagina's
- *      werkt zonder dat je eerst Discover hoeft te openen.
- *
- * Geen app-specifieke trucs: werkt met de Navigation API (nieuwe engines) en met hashchange (oudere,
- * zoals webOS 6 / Chromium 79).
- */
 (function () {
     'use strict';
     if (window.__discoverWebLoader) { return; }
     window.__discoverWebLoader = 1;
+    // Patched app: the Discover tile always opens the Discover page (never the channel tiles)
+    window.__discoverAlwaysTile = true;
+
+    // ---- Emby app capabilities: plugin pages (always) and the server menu (optional) ----
+    // This only changes client capabilities; server permissions still apply.
+    // The patcher sets window.__discoverAdminMenu = false when the server menu must stay off;
+    // plugin pages (Discover in the menu) are always allowed.
+    var adminMenu = window.__discoverAdminMenu !== false;
+    function patchAppHost(host) {
+        if (!host || typeof host.supports !== 'function' || host.__dcAdminMenu) { return false; }
+        var originalSupports = host.supports;
+        host.supports = function (feature) {
+            var name = String(feature || '').toLowerCase();
+            if (name === 'serversetup' && adminMenu) { return true; }
+            if (name === 'restrictedplugins') { return false; }
+            return originalSupports.apply(this, arguments);
+        };
+        host.__dcAdminMenu = true;
+        if (host.appHost && host.appHost !== host) { patchAppHost(host.appHost); }
+        log('plugin pages allowed; server management menu ' + (adminMenu ? 'enabled' : 'disabled in the patcher'));
+        return true;
+    }
+
+    function enableAppFeatures(attempt) {
+        attempt = attempt || 0;
+        if (attempt >= 120) { log('appHost not found; capability change not applied'); return; }
+        try {
+            if (window.Emby && typeof window.Emby.importModule === 'function') {
+                Promise.resolve(window.Emby.importModule('./modules/common/servicelocator.js')).then(function (module) {
+                    var locator = (module && (module.default || module)) || {};
+                    if (!patchAppHost(locator.appHost || (module && module.appHost))) {
+                        setTimeout(function () { enableAppFeatures(attempt + 1); }, 500);
+                    }
+                }, function () {
+                    setTimeout(function () { enableAppFeatures(attempt + 1); }, 500);
+                });
+                return;
+            }
+        } catch (e) { }
+        setTimeout(function () { enableAppFeatures(attempt + 1); }, 500);
+    }
+    enableAppFeatures();
 
     var CHANNEL_NAME = 'Discover Media';
-    var KNOWN_UI = ['discoverui1146', 'discoverui1145', 'discoverui1144', 'discoverui1143', 'discoverui1142', 'discoverui1141', 'discoverui1140', 'discoverui1139', 'discoverui1138', 'discoverui1137', 'discoverui1136', 'discoverui1135', 'discoverui1134', 'discoverui1133', 'discoverui1132', 'discoverui1131', 'discoverui1130', 'discoverui1129', 'discoverui1128', 'discoverui1127', 'discoverui1126', 'discoverui1125', 'discoverui1124', 'discoverui1123', 'discoverui1122', 'discoverui1121', 'discoverui1120', 'discoverui1119', 'discoverui1118', 'discoverui1117', 'discoverui1116', 'discoverui1115', 'discoverui1114', 'discoverui1113', 'discoverui1109', 'discoverui1108', 'discoverui1107', 'discoverui1106', 'discoverui1105', 'discoverui1104', 'discoverui1103', 'discoverui1102', 'discoverui1101', 'discoverui1100', 'discoverui1099', 'discoverui1098', 'discoverui1097', 'discoverui1096', 'discoverui1095', 'discoverui1094', 'discoverui1093', 'discoverui1092', 'discoverui1091', 'discoverui1090', 'discoverui1089', 'discoverui1088', 'discoverui1087', 'discoverui1086', 'discoverui1085', 'discoverui1084', 'discoverui1083', 'discoverui1082', 'discoverui1081', 'discoverui1080', 'discoverui1079', 'discoverui1078', 'discoverui1077', 'discoverui1076', 'discoverui1075'];
-    var KNOWN_BTN = ['discoverbuttonjs1430', 'discoverbuttonjs1429', 'discoverbuttonjs1428', 'discoverbuttonjs1427', 'discoverbuttonjs1426', 'discoverbuttonjs1425', 'discoverbuttonjs1424', 'discoverbuttonjs1423', 'discoverbuttonjs1422', 'discoverbuttonjs1421', 'discoverbuttonjs1420', 'discoverbuttonjs1419', 'discoverbuttonjs1418', 'discoverbuttonjs1417', 'discoverbuttonjs1416', 'discoverbuttonjs1415', 'discoverbuttonjs1414', 'discoverbuttonjs1413', 'discoverbuttonjs1412', 'discoverbuttonjs1411', 'discoverbuttonjs1410', 'discoverbuttonjs1409', 'discoverbuttonjs1408', 'discoverbuttonjs1407', 'discoverbuttonjs1406', 'discoverbuttonjs1405', 'discoverbuttonjs1404', 'discoverbuttonjs1403', 'discoverbuttonjs1402', 'discoverbuttonjs1401', 'discoverbuttonjs1400', 'discoverbuttonjs1399', 'discoverbuttonjs1398', 'discoverbuttonjs1397', 'discoverbuttonjs1396', 'discoverbuttonjs1395', 'discoverbuttonjs1394', 'discoverbuttonjs1393', 'discoverbuttonjs1392', 'discoverbuttonjs1391', 'discoverbuttonjs1390', 'discoverbuttonjs1389', 'discoverbuttonjs1388', 'discoverbuttonjs1387', 'discoverbuttonjs1386', 'discoverbuttonjs1385', 'discoverbuttonjs1384', 'discoverbuttonjs1383', 'discoverbuttonjs1382', 'discoverbuttonjs1381', 'discoverbuttonjs1380', 'discoverbuttonjs1379', 'discoverbuttonjs1378', 'discoverbuttonjs1377', 'discoverbuttonjs1376', 'discoverbuttonjs1375', 'discoverbuttonjs1374', 'discoverbuttonjs1373', 'discoverbuttonjs1372', 'discoverbuttonjs1371', 'discoverbuttonjs1370', 'discoverbuttonjs1360', 'discoverbuttonjs1354', 'discoverbuttonjs1353', 'discoverbuttonjs1352', 'discoverbuttonjs1351', 'discoverbuttonjs1350', 'discoverbuttonjs1340'];
+    var KNOWN_UI = ['discoverui1150', 'discoverui1149', 'discoverui1148', 'discoverui1147', 'discoverui1146', 'discoverui1145', 'discoverui1144', 'discoverui1143', 'discoverui1142', 'discoverui1141', 'discoverui1140', 'discoverui1139', 'discoverui1138', 'discoverui1137', 'discoverui1136', 'discoverui1135', 'discoverui1134', 'discoverui1133', 'discoverui1132', 'discoverui1131', 'discoverui1130', 'discoverui1129', 'discoverui1128', 'discoverui1127', 'discoverui1126', 'discoverui1125', 'discoverui1124', 'discoverui1123', 'discoverui1122', 'discoverui1121', 'discoverui1120', 'discoverui1119', 'discoverui1118', 'discoverui1117', 'discoverui1116', 'discoverui1115', 'discoverui1114', 'discoverui1113', 'discoverui1109', 'discoverui1108', 'discoverui1107', 'discoverui1106', 'discoverui1105', 'discoverui1104', 'discoverui1103', 'discoverui1102', 'discoverui1101', 'discoverui1100', 'discoverui1099', 'discoverui1098', 'discoverui1097', 'discoverui1096', 'discoverui1095', 'discoverui1094', 'discoverui1093', 'discoverui1092', 'discoverui1091', 'discoverui1090', 'discoverui1089', 'discoverui1088', 'discoverui1087', 'discoverui1086', 'discoverui1085', 'discoverui1084', 'discoverui1083', 'discoverui1082', 'discoverui1081', 'discoverui1080', 'discoverui1079', 'discoverui1078', 'discoverui1077', 'discoverui1076', 'discoverui1075'];
+    var KNOWN_BTN = ['discoverbuttonjs1433', 'discoverbuttonjs1432', 'discoverbuttonjs1431', 'discoverbuttonjs1430', 'discoverbuttonjs1429', 'discoverbuttonjs1428', 'discoverbuttonjs1427', 'discoverbuttonjs1426', 'discoverbuttonjs1425', 'discoverbuttonjs1424', 'discoverbuttonjs1423', 'discoverbuttonjs1422', 'discoverbuttonjs1421', 'discoverbuttonjs1420', 'discoverbuttonjs1419', 'discoverbuttonjs1418', 'discoverbuttonjs1417', 'discoverbuttonjs1416', 'discoverbuttonjs1415', 'discoverbuttonjs1414', 'discoverbuttonjs1413', 'discoverbuttonjs1412', 'discoverbuttonjs1411', 'discoverbuttonjs1410', 'discoverbuttonjs1409', 'discoverbuttonjs1408', 'discoverbuttonjs1407', 'discoverbuttonjs1406', 'discoverbuttonjs1405', 'discoverbuttonjs1404', 'discoverbuttonjs1403', 'discoverbuttonjs1402', 'discoverbuttonjs1401', 'discoverbuttonjs1400', 'discoverbuttonjs1399', 'discoverbuttonjs1398', 'discoverbuttonjs1397', 'discoverbuttonjs1396', 'discoverbuttonjs1395', 'discoverbuttonjs1394', 'discoverbuttonjs1393', 'discoverbuttonjs1392', 'discoverbuttonjs1391', 'discoverbuttonjs1390', 'discoverbuttonjs1389', 'discoverbuttonjs1388', 'discoverbuttonjs1387', 'discoverbuttonjs1386', 'discoverbuttonjs1385', 'discoverbuttonjs1384', 'discoverbuttonjs1383', 'discoverbuttonjs1382', 'discoverbuttonjs1381', 'discoverbuttonjs1380', 'discoverbuttonjs1379', 'discoverbuttonjs1378', 'discoverbuttonjs1377', 'discoverbuttonjs1376', 'discoverbuttonjs1375', 'discoverbuttonjs1374', 'discoverbuttonjs1373', 'discoverbuttonjs1372', 'discoverbuttonjs1371', 'discoverbuttonjs1370', 'discoverbuttonjs1360', 'discoverbuttonjs1354', 'discoverbuttonjs1353', 'discoverbuttonjs1352', 'discoverbuttonjs1351', 'discoverbuttonjs1350', 'discoverbuttonjs1340'];
 
     function log(m) { try { console.log('[Discover web] ' + m); } catch (e) { } }
     function api() {
@@ -47,8 +78,8 @@
             safe(a.getJSON(a.getUrl('Channels', { UserId: uid }))),
             safe(a.getJSON(a.getUrl('Users/' + uid + '/Views'))),
             safe(a.getJSON(a.getUrl('Discover/ChannelInfo'))),
-            // De server noemt zelf de actuele paginanamen (het knop-script staat niet in de lijst hierboven);
-            // zo laadt ook een oude, ingebakken kopie van dit script in een eigen app altijd de nieuwste versie.
+            // The server reports the current page names itself (the button script is not in the list above);
+            // so even an old copy of this script baked into a custom app always loads the newest version.
             safe(a.getJSON(a.getUrl('Discover/LoaderConfig', { _: Date.now() })))
         ]).then(function (r) {
             var names = [];
@@ -60,7 +91,7 @@
                     if (ids.indexOf(id) === -1) { ids.push(id); }
                 }
             });
-            // Hernoemd kanaal (bv. "Aanvragen"): de server weet welk kanaal van Discover is.
+            // Renamed channel (e.g. "Requests"): the server knows which channel belongs to Discover.
             if (r[3] && r[3].Id) { var cid = String(r[3].Id).toLowerCase(); if (ids.indexOf(cid) === -1) { ids.push(cid); } }
             var ui = newest(names, /^discoverui\d+$/i);
             var btn = newest(names, /^discoverbuttonjs\d+$/i);
@@ -69,14 +100,14 @@
             KNOWN_UI.forEach(function (n) { if (ui.indexOf(n) === -1) { ui.push(n); } });
             KNOWN_BTN.forEach(function (n) { if (btn.indexOf(n) === -1) { btn.push(n); } });
             info = { key: key, ids: ids, uiPage: ui[0], buttonPages: btn };
-            log('kanaal-id\'s ' + (ids.join(',') || 'niet gevonden') + ', pagina ' + info.uiPage);
+            log('channel ids ' + (ids.join(',') || 'not found') + ', page ' + info.uiPage);
             return info;
         }, function () { infoLoading = null; return null; });
         infoLoading = { key: key, p: p };
         return p;
     }
 
-    // ---- Aanvragen-knop globaal laden ----
+    // ---- Load the request button globally ----
     var buttonTried = false;
     function buttonActive() { return !!window.__discoverRequestButtonVersion; }
     function loadButton(a, names, i) {
@@ -85,12 +116,12 @@
         var s = document.createElement('script');
         s.src = a.getUrl('web/ConfigurationPage', { name: names[i] }) + '&_=' + Date.now();
         s.async = true;
-        s.onload = function () { if (buttonActive()) { log('knop actief: ' + names[i]); } else { loadButton(a, names, i + 1); } };
+        s.onload = function () { if (buttonActive()) { log('button active: ' + names[i]); } else { loadButton(a, names, i + 1); } };
         s.onerror = function () { if (s.parentNode) { s.parentNode.removeChild(s); } loadButton(a, names, i + 1); };
         document.head.appendChild(s);
     }
 
-    // ---- tegel/kanaal -> Discover ----
+    // ---- tile/channel -> Discover ----
     function routeOf(url) { if (!url) { return ''; } var i = url.indexOf('#!'); return i !== -1 ? url.substr(i + 2).toLowerCase() : ''; }
     function targetsChannel(route) {
         if (!info || !info.ids.length || !route) { return false; }
@@ -112,10 +143,10 @@
     // Setting "Tile opens the Discover page", read from the server (never cached): null = not known yet.
     var redirectOn = null, redirectAt = 0, redirectLoading = null;
     function refreshConfig(force) {
-        // Eigen app (bijv. de LG-app) kan vastleggen dat de tegel daar altijd Discover opent, los van de
-        // instelling (die is bedoeld voor de browser): window.__discoverAlwaysTile = true vóór dit script.
+        // A custom app (e.g. the LG app) can declare that the tile always opens Discover there, regardless of the
+        // setting (which is meant for the browser): window.__discoverAlwaysTile = true before this script.
         if (window.__discoverAlwaysTile === true) {
-            if (redirectOn !== true) { log('app: tegel opent altijd Discover'); }
+            if (redirectOn !== true) { log('app: tile always opens Discover'); }
             redirectOn = true; redirectAt = Date.now();
             return Promise.resolve(true);
         }
@@ -129,7 +160,7 @@
             redirectOn = v; redirectAt = Date.now(); redirectLoading = null;
             return v;
         }, function (err) {
-            log('config ophalen mislukt (' + ((err && (err.status || err.message)) || err) + '): geen redirect');
+            log('loading config failed (' + ((err && (err.status || err.message)) || err) + '): no redirect');
             redirectLoading = null; redirectOn = false; redirectAt = Date.now();
             return false;
         });
@@ -142,13 +173,13 @@
     var prevRoute = '', initialChecked = false;
     function shouldRedirect(route, navType, fromRoute, ignoreCfg) {
         var why = null;
-        if (!ignoreCfg && redirectOn !== true) { why = 'schakelaar uit'; }
-        else if (!targetsChannel(route)) { why = 'geen kanaalroute'; }
-        else if (window.__discoverAlwaysTile === true) { why = null; }   // eigen app: altijd Discover, nooit de tegels
-        else if (window.__discoverStay) { why = 'Kanaaltegels-knop actief'; }
-        else if (navType === 'traverse' && inChannelRoutes(fromRoute || '')) { why = 'terug vanuit kanaal'; }
-        if (why && targetsChannel(route)) { log('beslissing: NIET doorsturen (' + why + '), config=' + redirectOn); }
-        else if (!why) { log('beslissing: doorsturen, config=' + redirectOn); }
+        if (!ignoreCfg && redirectOn !== true) { why = 'setting off'; }
+        else if (!targetsChannel(route)) { why = 'not a channel route'; }
+        else if (window.__discoverAlwaysTile === true) { why = null; }   // custom app: always Discover, never the tiles
+        else if (window.__discoverStay) { why = 'channel tiles button active'; }
+        else if (navType === 'traverse' && inChannelRoutes(fromRoute || '')) { why = 'back from inside the channel'; }
+        if (why && targetsChannel(route)) { log('decision: do NOT redirect (' + why + '), config=' + redirectOn); }
+        else if (!why) { log('decision: redirect, config=' + redirectOn); }
         return !why;
     }
     function discoverHash() { return '#!/configurationpage?name=' + encodeURIComponent((info && info.uiPage) || KNOWN_UI[0]); }
@@ -168,7 +199,7 @@
                 if (!targetsChannel(route)) { refreshConfig(false); return; }
                 // Channel open: always use a fresh value of the setting (never the one cached in memory).
                 refreshConfig(true).then(function (on) {
-                    if (on !== true || routeOf(location.href) !== route) { log('config=' + on + ' -> kanaaltegels blijven'); return; }
+                    if (on !== true || routeOf(location.href) !== route) { log('config=' + on + ' -> keeping channel tiles'); return; }
                     if (shouldRedirect(route, e.navigationType, from, true)) { redirect(); }
                 });
             } catch (err) { }
@@ -176,8 +207,8 @@
     }
     // Without the Navigation API (older engines) hashchange is the only signal; it also cannot tell Back apart,
     // so we only redirect when the previous route was outside the channel.
-    // Emby wisselt van pagina met history.pushState; dat geeft geen hashchange. Zonder Navigation API
-    // (bv. LG webOS 6 / Chrome 79, Firefox) kijkt de timer onderaan daarom elke seconde of de route veranderde.
+    // Emby changes pages with history.pushState, which fires no hashchange. Without the Navigation API
+    // (e.g. LG webOS 6 / Chrome 79, Firefox) the timer at the bottom therefore checks every second whether the route changed.
     var hasNavApi = !!(window.navigation && typeof navigation.addEventListener === 'function');
     window.addEventListener('hashchange', function () { if (!hasNavApi) { onRouteChange(); } });
     function onRouteChange() {
@@ -191,9 +222,25 @@
         });
     }
 
-    // ---- Achtergrond bij de tegel "Discover Media" (zoals Emby dat bij andere bibliotheken doet) ----
-    // Alleen als de gebruiker in Emby "Achtergronden inschakelen" aan heeft. De foto komt in Emby's eigen
-    // achtergrondlaag (.backdropContainer), zodat Emby's verduistering er gewoon overheen valt.
+    // Safety net next to the Navigation API: Firefox (Android) does not always report the move to the channel in a way
+    // that makes the navigate event above redirect. So every second we also check ourselves whether the route just went to the
+    // channel from a page outside it (a tap on a tile or menu, not Back from a folder).
+    var pollRoute = null;
+    function pollCheck() {
+        var route = routeOf(location.href);
+        if (pollRoute === null) { pollRoute = route; return; }
+        if (route === pollRoute) { return; }
+        var from = pollRoute;
+        pollRoute = route;
+        if (!targetsChannel(route) || inChannelRoutes(from)) { return; }
+        refreshConfig(true).then(function (on) {
+            if (on === true && routeOf(location.href) === route && shouldRedirect(route, 'push', from, true)) { log('safety net: redirect'); redirect(); }
+        });
+    }
+
+    // ---- Backdrop for the "Discover Media" tile (like Emby does for other libraries) ----
+    // Only when the user has "Enable backdrops" on in Emby. The image goes into Emby's own
+    // backdrop layer (.backdropContainer), so Emby's dimming simply covers it.
     var bd = { urls: null, loading: null, on: false, timer: null, layer: null, addedClass: false, seenEmby: false, pref: null, prefAsked: false, last: '', seq: 0, page: null, items: {} };
     function bdPrefFromStorage() {
         try {
@@ -223,7 +270,7 @@
         var s = bdPrefFromStorage();
         if (s !== null) { return s; }
         if (bd.pref !== null) { return bd.pref; }
-        return bd.seenEmby;   // onbekend: alleen als Emby zelf al achtergronden laat zien
+        return bd.seenEmby;   // unknown: only if Emby itself already shows backdrops
     }
     function bdLoadUrls() {
         if (bd.urls) { return Promise.resolve(bd.urls); }
@@ -255,15 +302,15 @@
                     if (n !== bd.layer && n.nodeType === 1) { bd.seenEmby = true; }
                 }
             }
-            // Op een kanaalpagina met een eigen achtergrond van Emby: Emby laten winnen. Anders vechten Emby en wij
-            // om de laag en de klasse withBackdrop, en knippert de balk bovenin af en toe.
+            // On a channel page with Emby's own backdrop: let Emby win. Otherwise Emby and we fight
+            // over the layer and the withBackdrop class, and the top bar flickers now and then.
             if (bd.page && embyHasImage(container)) {
                 if (bd.layer && bd.layer.parentNode === container) { container.removeChild(bd.layer); }
                 bd.yielded = true;
                 return;
             }
-            if (bd.yielded && bd.page) { return; }   // deze pagina is van Emby: niet terugzetten
-            // Emby ruimt zijn achtergrond op bij een tegel zonder eigen foto: dan zetten we de onze terug.
+            if (bd.yielded && bd.page) { return; }   // this page belongs to Emby: do not restore
+            // Emby clears its backdrop on a tile without its own image: then we put ours back.
             if (bd.on && bd.layer && bd.layer.parentNode !== container) { container.appendChild(bd.layer); }
         }).observe(container, { childList: true });
         var bg = document.querySelector('.backgroundContainer');
@@ -273,7 +320,7 @@
             }).observe(bg, { attributes: true, attributeFilter: ['class'] });
         }
     }
-    // Toont Emby zelf een echte achtergrondfoto? (Een leeg of uitfadend element telt niet: dat liet de onze ten onrechte weg.)
+    // Does Emby itself show a real backdrop image? (An empty or fading element does not count: that wrongly hid ours.)
     function embyHasImage(container) {
         for (var k = 0; k < container.children.length; k++) {
             var ch = container.children[k];
@@ -293,7 +340,7 @@
         if (!container) { return; }
         bdWatch(container);
         if (!bdAllowed()) { return; }
-        // Kanaalpagina waar Emby al een eigen achtergrond toont: niets doen.
+        // Channel page where Emby already shows its own backdrop: do nothing.
         if (bd.page) {
             if (embyHasImage(container)) { return; }
         }
@@ -349,7 +396,7 @@
         }
         return String(id || '').toLowerCase();
     }
-    // Achtergrond bij een Emby-item-id uit het kanaal: { InChannel, Url } (bewaard per id).
+    // Backdrop for an Emby item id from the channel: { InChannel, Url } (cached per id).
     function bdItem(id) {
         var a = api();
         if (!a || !id) { return Promise.resolve(null); }
@@ -360,9 +407,9 @@
     }
     function bdOnPointer(e) {
         var id = bdCardId(e.target);
-        if (id === null) { return; }             // geen kaart: niets veranderen
+        if (id === null) { return; }             // no card: change nothing
         if (bd.page) {
-            // In het kanaal: de achtergrond volgt de titel onder de muis (zoals in een Emby-bibliotheek).
+            // In the channel: the backdrop follows the title under the mouse (like in an Emby library).
             if (id === bd.hoverId) { return; }
             bd.hoverId = id;
             var page = bd.page;
@@ -375,17 +422,18 @@
             }, 150);
             return;
         }
+        if (tvLayout()) { return; }               // TV: Emby's own focus preview handles it (see tvPatchBackdrop)
         if (info && info.ids.indexOf(id) !== -1) {
-            if (bd.on) { return; }                // al zichtbaar: niet bij elk kind-element een nieuwe foto
+            if (bd.on) { return; }                // already visible: no new image for every child element
             bdAskServerPref();
             clearTimeout(bd.timer);
             bd.timer = setTimeout(bdShow, 120);
         } else {
-            bdHide();                             // een andere tegel: Emby toont zijn eigen achtergrond
+            bdHide();                             // another tile: Emby shows its own backdrop
         }
     }
-    // Pagina's in het kanaal (hoofdmap, rijen, titelmap, aanvraagmap, seizoen, trailer) krijgen een achtergrond:
-    // de titel zelf als die er is, anders een willekeurige uit wat trending is.
+    // Pages in the channel (root, rows, title folder, request folder, season, trailer) get a backdrop:
+    // the title itself if there is one, otherwise a random trending one.
     function bdRouteId(route) {
         var m = /^\/(?:list|videos|tv|movies)\b.*[?&]parentid=([^&]+)/.exec(route) || /^\/(?:item|details|channel)\b.*[?&]id=([^&]+)/.exec(route);
         return m ? decodeURIComponent(m[1]).toLowerCase() : null;
@@ -421,21 +469,121 @@
     if (window.navigation && typeof navigation.addEventListener === 'function') { navigation.addEventListener('navigatesuccess', bdOnNavigate); }
     else { window.addEventListener('hashchange', bdOnNavigate); }
 
-    log('lader actief (v' + 3 + '); controleer in de console met: __discoverDebug()');
+
+    // ---- TV layout (Android TV / Chromecast / Google TV) ----
+    function tvLayout() { var d = document.documentElement; return !!(d && d.classList && d.classList.contains('layout-tv')); }
+
+    // 1. On TV Emby shows a backdrop for the focused tile itself (focus preview). For the channel
+    //    "Discover Media" Emby finds no image and clears the backdrop. We hook into Emby's own
+    //    backdrop module: for the Discover tile it gets a trending image from Discover.
+    var tvBd = { patched: false, seq: 0 };
+    function pickBackdrop(urls) {
+        var pick = urls[Math.floor(Math.random() * urls.length)];
+        if (urls.length > 1 && pick === bd.last) { pick = urls[(urls.indexOf(pick) + 1) % urls.length]; }
+        bd.last = pick;
+        return pick;
+    }
+    function tvPatchBackdrop() {
+        if (tvBd.patched || !window.Emby || typeof Emby.importModule !== 'function') { return; }
+        tvBd.patched = true;
+        Promise.resolve(Emby.importModule('./modules/backdrop/backdrop.js')).then(function (m) {
+            var bm = m && (m.default || m);
+            if (!bm || typeof bm.setBackdrop !== 'function' || bm.__dcPatched) { return; }
+            bm.__dcPatched = true;
+            var orig = bm.setBackdrop;
+            bm.setBackdrop = function (item) {
+                var my = ++tvBd.seq;
+                try {
+                    var id = item && typeof item === 'object' && item.Id ? String(item.Id).toLowerCase() : null;
+                    var own = item && item.BackdropImageTags && item.BackdropImageTags.length;
+                    if (id && !own && info && info.ids.indexOf(id) !== -1) {
+                        var self = this;
+                        if (bd.urls && bd.urls.length) { return orig.call(self, pickBackdrop(bd.urls)); }
+                        bdLoadUrls().then(function (u) { if (my === tvBd.seq && u.length) { orig.call(self, pickBackdrop(u)); } });
+                    }
+                } catch (e) { }
+                return orig.apply(this, arguments);
+            };
+            log('tv: backdrop hooked to the Discover tile');
+        }, function () { tvBd.patched = false; });
+    }
+
+    // 2. Discover on TV is designed for 1920 css pixels wide (like LG webOS). Android TV / Chromecast
+    //    uses 960x540 css pixels, which made everything in Discover twice as large. We scale the
+    //    Discover page (.dcTvPage) back to that 1920 size, with the same text ratio as Emby.
+    // Discover also uses vh/vw (e.g. 100vh, 88vh). Inside zoom those are wrong, so in
+    // Discover's own <style> we rewrite every vh/vw to a variable that gives the 1920x1080 size.
+    var VUNIT = /(-?\d*\.?\d+)(d?vh|vw)\b/g;
+    function tvStyles(on) {
+        var list = document.querySelectorAll('style');
+        for (var i = 0; i < list.length; i++) {
+            var st = list[i];
+            if (st.id === 'dcTvScaleStyle') { continue; }
+            if (st.__dcOrig === undefined) {
+                var t = st.textContent || '';
+                if (t.indexOf('.dcRoot') === -1 || t.indexOf('.dcTvPage') === -1) { continue; }
+                st.__dcOrig = t;
+                st.__dcScaled = t.replace(VUNIT, function (m, n, u) { return 'calc(' + n + ' * var(' + (u === 'vw' ? '--dcVw' : '--dcVh') + '))'; });
+            }
+            var want = on ? st.__dcScaled : st.__dcOrig;
+            if (st.textContent !== want) { st.textContent = want; }
+        }
+    }
+    function tvScale() {
+        var d = document.documentElement;
+        if (!d) { return; }
+        if (!document.getElementById('dcTvScaleStyle')) {
+            var st = document.createElement('style');
+            st.id = 'dcTvScaleStyle';
+            st.textContent = 'html.layout-tv.dcTvScaled .dcTvPage{zoom:var(--dcTvZoom);font-size:var(--dcTvFont);}';
+            (document.head || d).appendChild(st);
+        }
+        var w = window.innerWidth || 0, h = window.innerHeight || 0;
+        if (!tvLayout() || !w || !h || w >= 1600) {
+            if (d.classList.contains('dcTvScaled')) { d.classList.remove('dcTvScaled'); tvStyles(false); }
+            return;
+        }
+        var z = Math.round(w / 1920 * 1000) / 1000;
+        var rootPx = 16;
+        try { rootPx = parseFloat(getComputedStyle(d).fontSize) || 16; } catch (e) { }
+        d.style.setProperty('--dcTvZoom', String(z));
+        d.style.setProperty('--dcTvFont', (rootPx / z).toFixed(2) + 'px');
+        d.style.setProperty('--dcVh', (h / 100 / z).toFixed(3) + 'px');
+        d.style.setProperty('--dcVw', (w / 100 / z).toFixed(3) + 'px');
+        if (!d.classList.contains('dcTvScaled')) { d.classList.add('dcTvScaled'); log('tv: Discover scaled x' + z + ' (screen ' + w + 'x' + h + ' css px)'); }
+        tvStyles(true);
+    }
+    // Scale as soon as the Discover page appears (not only after the 1 s timer).
+    var tvMoPending = false;
+    if (typeof MutationObserver === 'function') {
+        new MutationObserver(function () {
+            if (tvMoPending || !tvLayout()) { return; }
+            tvMoPending = true;
+            (window.requestAnimationFrame || setTimeout)(function () { tvMoPending = false; tvScale(); });
+        }).observe(document.documentElement, { childList: true, subtree: true });
+    }
+    window.addEventListener('resize', tvScale);
+
+    log('loader active (v' + 4 + '); check in the console with: __discoverDebug()');
+    tvScale();
     setInterval(function () {
+        tvScale();
+        if (tvLayout()) { tvPatchBackdrop(); }
         var a = api();
         if (!a) { return; }
         refreshConfig(false);
         if (!hasNavApi && initialChecked) { onRouteChange(); }
+        if (hasNavApi && initialChecked) { pollCheck(); }
         loadInfo().then(function (i) {
             if (!initialChecked && i && redirectOn !== null) {
                 initialChecked = true;
                 var r0 = routeOf(location.href);
                 if (!prevRoute) { prevRoute = r0; }
-                if (shouldRedirect(r0, 'push', '')) { log('kanaal staat open, doorsturen'); redirect(); }
+                if (shouldRedirect(r0, 'push', '')) { log('channel is open, redirecting'); redirect(); }
             }
             if (!buttonActive() && !buttonTried) { buttonTried = true; loadButton(a, (i && i.buttonPages) || KNOWN_BTN, 0); }
             if (i && !bd.pageChecked) { bd.pageChecked = true; bdCheckPage(); }
+            if (i && i.ids.length && tvLayout() && !bd.urls) { bdLoadUrls(); }
         });
     }, 1000);
 })();

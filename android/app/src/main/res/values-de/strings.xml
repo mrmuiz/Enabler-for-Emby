@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tagline">Emby mit Discover installieren und aktualisieren.</string>
+    <string name="status_header">EMBY-STATUS</string>
+    <string name="status_checking_device">Emby auf diesem Gerät wird geprüft…</string>
+    <string name="status_hint">Prüfung beim Öffnen; installiert wird erst nach deiner Auswahl.</string>
+    <string name="actions_header">AKTIONEN</string>
+    <string name="log_header">AKTIVITÄTSPROTOKOLL</string>
+    <string name="btn_install">Emby mit Discover herunterladen und installieren</string>
+    <string name="btn_update">Aktualisieren: neuestes Emby herunterladen und patchen</string>
+    <string name="btn_force">Neu erstellen (erzwingen)</string>
+    <string name="btn_remove">Vorhandene Emby-App deinstallieren</string>
+    <string name="btn_working">Herunterladen und Patchen läuft…</string>
+    <string name="btn_wait">Bitte warten…</string>
+    <string name="switch_server_menu">Servermenü (Servereinstellungen) in der App anzeigen</string>
+    <string name="switch_server_menu_hint">Nur für Administratoren sichtbar; der Server entscheidet über die Rechte. Geändert? Danach neu erstellen.</string>
+    <string name="popup_installed_title">Emby ist installiert</string>
+    <string name="popup_installed_text">Emby mit Discover ist bereit.</string>
+    <string name="popup_installed_text_version">Emby mit Discover ist bereit (Version %1$s).</string>
+    <string name="popup_close">Schließen</string>
+    <string name="popup_open_emby">Emby öffnen</string>
+    <string name="state_not_installed">Emby ist noch nicht installiert — bereit für die erste Installation</string>
+    <string name="state_foreign">Es ist bereits eine Emby-App (Version %1$s) mit einer anderen Signatur installiert. Deinstalliere sie zuerst; Android kann eine vorhandene App nicht umwandeln.</string>
+    <string name="state_patched_checking">Gepatchtes Emby %1$s gefunden — online wird geprüft…</string>
+    <string name="state_patched_check_failed">Gepatchtes Emby %1$s installiert — Update-Prüfung fehlgeschlagen, später erneut versuchen</string>
+    <string name="state_patched_unknown">Gepatchtes Emby %1$s installiert — zum Aktualisieren neu erstellen</string>
+    <string name="state_update_available">Neue Emby-Version verfügbar (installiert: %1$s)</string>
+    <string name="state_menu_changed">Servermenü-Einstellung geändert — zum Übernehmen neu erstellen</string>
+    <string name="state_up_to_date">Deine gepatchte Emby-App (%1$s) ist aktuell</string>
+    <string name="step_preparing">Vorbereitung…</string>
+    <string name="step_downloading">Emby wird heruntergeladen: %1$d%%</string>
+    <string name="step_verifying">Download wird geprüft…</string>
+    <string name="step_patching">Emby wird gepatcht…</string>
+    <string name="step_signing">Patchen fertig — APK wird signiert…</string>
+    <string name="step_preparing_install">Signieren fertig — Installation wird vorbereitet…</string>
+    <string name="step_installing">Installation gestartet — warte auf Android…</string>
+    <string name="step_done_see_log">Fertig — siehe Aktivitätsprotokoll</string>
+    <string name="install_success">Installation abgeschlossen: Emby wurde erfolgreich installiert.</string>
+    <string name="install_conflict">Konflikt: Deinstalliere zuerst die vorhandene Emby-App (andere Signatur).</string>
+    <string name="install_failed">Installation fehlgeschlagen (%1$d): %2$s</string>
+    <string name="notif_channel">Emby-Updates</string>
+    <string name="notif_update_title">Neue Emby-Version verfügbar</string>
+    <string name="notif_update_text">Öffne Discover Patcher, um die neueste Beta herunterzuladen und zu installieren.</string>
+</resources>

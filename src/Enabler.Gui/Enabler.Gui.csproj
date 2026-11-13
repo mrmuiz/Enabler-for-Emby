@@ -7,7 +7,7 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>DiscoverEnabler</AssemblyName>
     <RootNamespace>DiscoverEnabler.Gui</RootNamespace>
-    <Version>1.2.0</Version>
+    <Version>1.3.0</Version>
     <Product>Discover Enabler</Product>
     <Company>mrmuiz</Company>
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
