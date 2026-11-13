@@ -164,7 +164,7 @@ jobs:
           KS: ${{ secrets.PATCHER_KEYSTORE_B64 }}
         run: |
           if [ -n "$KS" ]; then
-            echo "$KS" | base64 -d > "$RUNNER_TEMP/patcher.jks"
+            echo "$KS" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/patcher.jks"
             echo "PATCHER_KEYSTORE=$RUNNER_TEMP/patcher.jks" >> "$GITHUB_ENV"
           else
             echo "No PATCHER_KEYSTORE_B64 secret: building a debug-signed test APK only."
