@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="tagline">Emby mit Discover installieren und aktualisieren.</string>
+    <string name="tagline">Lädt die offizielle Emby-App herunter und fügt Discover hinzu.</string>
     <string name="status_header">EMBY-STATUS</string>
     <string name="status_checking_device">Emby auf diesem Gerät wird geprüft…</string>
     <string name="status_hint">Prüfung beim Öffnen; installiert wird erst nach deiner Auswahl.</string>
     <string name="actions_header">AKTIONEN</string>
     <string name="log_header">AKTIVITÄTSPROTOKOLL</string>
-    <string name="btn_install">Emby mit Discover herunterladen und installieren</string>
-    <string name="btn_update">Aktualisieren: neuestes Emby herunterladen und patchen</string>
+    <string name="btn_install">Emby herunterladen und Discover hinzufügen</string>
+    <string name="btn_update">Aktualisieren: neuestes Emby herunterladen und Discover hinzufügen</string>
     <string name="btn_force">Neu erstellen (erzwingen)</string>
     <string name="btn_remove">Vorhandene Emby-App deinstallieren</string>
     <string name="btn_working">Herunterladen und Patchen läuft…</string>
