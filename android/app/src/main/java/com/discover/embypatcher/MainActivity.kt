@@ -37,6 +37,7 @@ class MainActivity : Activity() {
     private lateinit var forceButton: Button
     private lateinit var removeButton: Button
     private lateinit var menuSwitch: Switch
+    private lateinit var root: LinearLayout
     private var embyState = EmbyApp.State(EmbyApp.Kind.NOT_INSTALLED, null)
     private lateinit var workProgress: ProgressBar
     private var workRunning = false
@@ -76,7 +77,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         window.statusBarColor = Color.rgb(10, 18, 10)
         window.navigationBarColor = Color.rgb(10, 18, 10)
-        val root = LinearLayout(this).apply {
+        root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val edge = if (isTv) 48 else 22
             setPadding(dp(edge), dp(if (isTv) 28 else 20), dp(edge), dp(if (isTv) 26 else 18))
@@ -168,6 +169,7 @@ class MainActivity : Activity() {
         forceButton.nextFocusUpId = buildButton.id
         forceButton.nextFocusDownId = menuSwitch.id
         menuSwitch.nextFocusUpId = forceButton.id
+        menuSwitch.nextFocusDownId = menuSwitch.id
         val actionButtonHeight = dp(if (isTv) 68 else 50)
         actions.addView(removeButton, LinearLayout.LayoutParams(-1, actionButtonHeight).apply { topMargin = dp(10) })
         actions.addView(buildButton, LinearLayout.LayoutParams(-1, actionButtonHeight).apply { topMargin = dp(10) })
@@ -178,13 +180,13 @@ class MainActivity : Activity() {
 
         val logCard = panel()
         logCard.addView(label(getString(R.string.log_header), 11f, Color.rgb(174, 193, 169), true))
-        logView = label("", if (isTv) 15f else 13f, Color.rgb(240, 245, 238)).apply { typeface = Typeface.MONOSPACE; setTextIsSelectable(true); setLineSpacing(dp(4).toFloat(), 1.0f); includeFontPadding = true; setPadding(dp(8), dp(8), dp(8), dp(8)) }
-        scroll = ScrollView(this).apply { isFillViewport = true; addView(logView) }
+        logView = label("", if (isTv) 15f else 13f, Color.rgb(240, 245, 238)).apply { typeface = Typeface.MONOSPACE; setTextIsSelectable(!isTv); if (isTv) { isFocusable = false; isFocusableInTouchMode = false }; setLineSpacing(dp(4).toFloat(), 1.0f); includeFontPadding = true; setPadding(dp(8), dp(8), dp(8), dp(8)) }
+        scroll = ScrollView(this).apply { isFillViewport = true; if (isTv) { isFocusable = false; descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS }; addView(logView) }
         logCard.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(9) })
         root.addView(logCard, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(11); weight = 1f })
         setContentView(root)
         // D-pad users land on the primary action immediately; focus is clearly visible.
-        buildButton.post { buildButton.requestFocus() }
+        buildButton.post { ensureFocus() }
         if (isTv) log("TV mode: remote control (D-pad) navigation enabled.")
 
         Installer.sink = { status, english ->
@@ -214,6 +216,24 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         if (Installer.installedListener != null) Installer.installedListener = null
         super.onDestroy()
+    }
+
+    /** D-pad: always keep the focus on a visible control (a TV shows no cursor, so lost focus = dead remote). */
+    private fun ensureFocus() {
+        val f = currentFocus
+        val ok = f != null && f.isShown && (f === removeButton || f === buildButton || f === forceButton || f === menuSwitch)
+        if (ok) return
+        val target = when {
+            removeButton.visibility == View.VISIBLE -> removeButton
+            buildButton.isEnabled -> buildButton
+            else -> menuSwitch
+        }
+        target.requestFocus()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) root.post { ensureFocus() }
     }
 
     private fun adminMenu() = prefs.getBoolean("admin_menu", true)
@@ -286,7 +306,8 @@ class MainActivity : Activity() {
                 buildButton.text = buildLabel()
             }
             removeButton.visibility = if (state.kind == EmbyApp.Kind.FOREIGN) View.VISIBLE else View.GONE
-            if (state.kind == EmbyApp.Kind.FOREIGN && !workRunning) removeButton.requestFocus()
+            if (state.kind == EmbyApp.Kind.FOREIGN && !workRunning) removeButton.post { removeButton.requestFocus() }
+            else root.post { ensureFocus() }
         }
         if (message != lastStatusLog) {
             lastStatusLog = message
@@ -317,7 +338,7 @@ class MainActivity : Activity() {
             log("An Emby app with a different signature is installed. Android cannot update it to the patched version.")
             log("Uninstall the existing Emby app first (you will need to sign in again; your server and library are not changed).")
             removeButton.visibility = View.VISIBLE
-            removeButton.requestFocus()
+            removeButton.post { removeButton.requestFocus() }
             return
         }
         if (!packageManager.canRequestPackageInstalls()) {
@@ -345,6 +366,7 @@ class MainActivity : Activity() {
                     buildButton.isEnabled = true; forceButton.isEnabled = true
                     buildButton.text = buildLabel()
                     forceButton.text = getString(R.string.btn_force)
+                    ensureFocus()
                     buildButton.alpha = 1f; forceButton.alpha = 1f
                     if (!installHandedOff) {
                         workProgress.visibility = View.GONE
