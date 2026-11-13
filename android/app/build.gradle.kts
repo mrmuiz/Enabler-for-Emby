@@ -21,9 +21,11 @@ android {
         if (ksFile != null && file(ksFile).isFile) {
             create("release") {
                 storeFile = file(ksFile)
-                storePassword = System.getenv("PATCHER_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("PATCHER_KEY_ALIAS")
-                keyPassword = System.getenv("PATCHER_KEY_PASSWORD") ?: System.getenv("PATCHER_KEYSTORE_PASSWORD")
+                // Trim: a value pasted into a GitHub secret often ends with a line break.
+                val storePw = System.getenv("PATCHER_KEYSTORE_PASSWORD")?.trim()
+                storePassword = storePw
+                keyAlias = System.getenv("PATCHER_KEY_ALIAS")?.trim()
+                keyPassword = System.getenv("PATCHER_KEY_PASSWORD")?.trim()?.ifEmpty { null } ?: storePw
             }
         }
     }
