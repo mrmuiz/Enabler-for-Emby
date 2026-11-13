@@ -26,16 +26,28 @@ object Updater {
         setRequestProperty("Accept", "application/vnd.github+json")
     }
 
-    /** Uses the last commit of the APK file as the version check for the beta. */
-    fun latestSha(name: String): String? = try {
-        val c = github(API_BASE + name + "&per_page=1")
-        try {
-            if (c.responseCode != 200) null else {
-                val commits = JSONArray(c.inputStream.bufferedReader().use { it.readText() })
-                if (commits.length() == 0) null else commits.getJSONObject(0).getJSONObject("sha").let { it.toString().trim('"') }
-            }
-        } finally { c.disconnect() }
-    } catch (_: Exception) { null }
+    @Volatile private var cached: Pair<String, Long>? = null
+    private const val CACHE_MS = 10 * 60 * 1000L
+
+    /**
+     * Uses the last commit of the APK file as the version check for the beta.
+     * Cached for 10 minutes: unauthenticated GitHub API calls are limited to 60 per hour.
+     */
+    fun latestSha(name: String): String? {
+        cached?.let { (sha, at) -> if (System.currentTimeMillis() - at < CACHE_MS) return sha }
+        val sha = try {
+            val c = github(API_BASE + name + "&per_page=1")
+            try {
+                if (c.responseCode != 200) null else {
+                    val commits = JSONArray(c.inputStream.bufferedReader().use { it.readText() })
+                    // "sha" is a plain string in the GitHub commits API.
+                    if (commits.length() == 0) null else commits.getJSONObject(0).optString("sha").ifEmpty { null }
+                }
+            } finally { c.disconnect() }
+        } catch (_: Exception) { null }
+        if (sha != null) cached = sha to System.currentTimeMillis()
+        return sha
+    }
 
     /** Always downloads the APK straight from the official Emby Android folder. */
     fun downloadUrl(name: String): String = BASE + name
