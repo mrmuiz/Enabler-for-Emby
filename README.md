@@ -31,7 +31,7 @@ There are two ways to get the patched app:
 1. Download `DiscoverPatcher.apk` from the [releases](https://github.com/mrmuiz/Enabler-for-Emby/releases) and install it on the device
    (allow "Install unknown apps" once).
 2. Open **Discover Patcher**. It shows what is installed:
-   - **Emby is not installed yet**: tap **Download and install Emby with Discover**.
+   - **Emby is not installed yet**: tap **Download Emby and add Discover**.
    - **An Emby app with a different signature is already installed** (the official app): tap **Uninstall existing Emby app** first.
      Android cannot convert an existing app. You will have to sign in to Emby again; your server and library are not changed.
    - **Patched Emby installed**: the patcher tells you when a new Emby version is available; tap **Update** to install it over the old one.

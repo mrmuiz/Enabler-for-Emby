@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="tagline">Installer og oppdater Emby med Discover.</string>
+    <string name="tagline">Laster ned den offisielle Emby-appen og legger til Discover.</string>
     <string name="status_header">EMBY-STATUS</string>
     <string name="status_checking_device">Sjekker Emby på denne enheten…</string>
     <string name="status_hint">Sjekkes når appen åpnes; ingenting installeres før du velger det.</string>
     <string name="actions_header">HANDLINGER</string>
     <string name="log_header">AKTIVITETSLOGG</string>
-    <string name="btn_install">Last ned og installer Emby med Discover</string>
-    <string name="btn_update">Oppdater: last ned og patch nyeste Emby</string>
+    <string name="btn_install">Last ned Emby og legg til Discover</string>
+    <string name="btn_update">Oppdater: last ned nyeste Emby og legg til Discover</string>
     <string name="btn_force">Bygg på nytt (tving)</string>
     <string name="btn_remove">Avinstaller eksisterende Emby-app</string>
     <string name="btn_working">Laster ned og patcher…</string>

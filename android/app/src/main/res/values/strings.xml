@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Discover Patcher</string>
-    <string name="tagline">Install and update Emby with Discover.</string>
+    <string name="tagline">Downloads the official Emby app and adds Discover to it.</string>
     <string name="status_header">EMBY STATUS</string>
     <string name="status_checking_device">Checking Emby on this device…</string>
     <string name="status_hint">Checked when the app opens; nothing is installed until you choose to.</string>
     <string name="actions_header">ACTIONS</string>
     <string name="log_header">ACTIVITY LOG</string>
-    <string name="btn_install">Download and install Emby with Discover</string>
-    <string name="btn_update">Update: download and patch the latest Emby</string>
+    <string name="btn_install">Download Emby and add Discover</string>
+    <string name="btn_update">Update: download the latest Emby and add Discover</string>
     <string name="btn_force">Rebuild (force)</string>
     <string name="btn_remove">Uninstall existing Emby app</string>
     <string name="btn_working">Downloading and patching…</string>

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="tagline">Emby met Discover installeren en bijwerken.</string>
+    <string name="tagline">Downloadt de officiële Emby-app en voegt er Discover aan toe.</string>
     <string name="status_header">EMBY-STATUS</string>
     <string name="status_checking_device">Emby op dit apparaat controleren…</string>
     <string name="status_hint">Controle bij het openen; installeren gebeurt pas na jouw keuze.</string>
     <string name="actions_header">ACTIES</string>
     <string name="log_header">ACTIVITEITENLOG</string>
-    <string name="btn_install">Emby met Discover downloaden en installeren</string>
-    <string name="btn_update">Bijwerken: nieuwste Emby downloaden en patchen</string>
+    <string name="btn_install">Emby downloaden en Discover toevoegen</string>
+    <string name="btn_update">Bijwerken: nieuwste Emby downloaden en Discover toevoegen</string>
     <string name="btn_force">Opnieuw bouwen (forceren)</string>
     <string name="btn_remove">Bestaande Emby-app verwijderen</string>
     <string name="btn_working">Bezig met downloaden en patchen…</string>
