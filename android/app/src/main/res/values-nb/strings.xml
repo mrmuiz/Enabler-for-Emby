@@ -6,6 +6,8 @@
     <string name="status_hint">Sjekkes når appen åpnes; ingenting installeres før du velger det.</string>
     <string name="actions_header">HANDLINGER</string>
     <string name="log_header">AKTIVITETSLOGG</string>
+    <string name="tab_more">Logg og innstillinger</string>
+    <string name="settings_header">INNSTILLINGER</string>
     <string name="btn_install">Last ned Emby og legg til Discover</string>
     <string name="btn_update">Oppdater: last ned nyeste Emby og legg til Discover</string>
     <string name="btn_force">Bygg på nytt (tving)</string>

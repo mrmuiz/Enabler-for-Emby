@@ -7,6 +7,9 @@
     <string name="status_hint">Checked when the app opens; nothing is installed until you choose to.</string>
     <string name="actions_header">ACTIONS</string>
     <string name="log_header">ACTIVITY LOG</string>
+    <string name="tab_main" translatable="false">Emby</string>
+    <string name="tab_more">Log &amp; settings</string>
+    <string name="settings_header">SETTINGS</string>
     <string name="btn_install">Download Emby and add Discover</string>
     <string name="btn_update">Update: download the latest Emby and add Discover</string>
     <string name="btn_force">Rebuild (force)</string>
