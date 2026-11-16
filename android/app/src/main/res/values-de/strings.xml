@@ -6,6 +6,8 @@
     <string name="status_hint">Prüfung beim Öffnen; installiert wird erst nach deiner Auswahl.</string>
     <string name="actions_header">AKTIONEN</string>
     <string name="log_header">AKTIVITÄTSPROTOKOLL</string>
+    <string name="tab_more">Protokoll &amp; Einstellungen</string>
+    <string name="settings_header">EINSTELLUNGEN</string>
     <string name="btn_install">Emby herunterladen und Discover hinzufügen</string>
     <string name="btn_update">Aktualisieren: neuestes Emby herunterladen und Discover hinzufügen</string>
     <string name="btn_force">Neu erstellen (erzwingen)</string>

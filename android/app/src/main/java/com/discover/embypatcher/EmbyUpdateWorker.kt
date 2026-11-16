@@ -14,9 +14,10 @@ class EmbyUpdateWorker(context: Context, params: WorkerParameters) : CoroutineWo
         return try {
             val prefs = applicationContext.getSharedPreferences("emby", Context.MODE_PRIVATE)
             val installedMarker = prefs.getString("sha", null) ?: return Result.success()
-            val latest = Updater.latestSha(Updater.apkName()) ?: return Result.retry()
-            val installedSha = installedMarker.substringBefore("#")
-            if (latest != installedSha && prefs.getString("notified_sha", null) != latest) {
+            val check = Updater.check(Updater.apkName(), installedMarker)
+            val latest = check.latest ?: return Result.retry()
+            check.newMarker?.let { prefs.edit().putString("sha", it).apply() }
+            if (check.current == false && prefs.getString("notified_sha", null) != latest) {
                 val manager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 if (Build.VERSION.SDK_INT >= 26) {
                     manager.createNotificationChannel(NotificationChannel(CHANNEL, applicationContext.getString(R.string.notif_channel), NotificationManager.IMPORTANCE_DEFAULT))

@@ -38,6 +38,14 @@ class MainActivity : Activity() {
     private lateinit var removeButton: Button
     private lateinit var menuSwitch: Switch
     private lateinit var root: LinearLayout
+    private lateinit var lastLogView: TextView
+    private lateinit var tabMain: Button
+    private lateinit var tabMore: Button
+    private lateinit var pageMain: View
+    private lateinit var pageMore: View
+    private var showingMore = false
+    /** After a tap on an action, the latest log line is also shown on the first tab. */
+    private var echoLog = false
     private var embyState = EmbyApp.State(EmbyApp.Kind.NOT_INSTALLED, null)
     private lateinit var workProgress: ProgressBar
     private var workRunning = false
@@ -70,6 +78,33 @@ class MainActivity : Activity() {
         setPadding(dp(18), dp(15), dp(18), dp(15))
         background = GradientDrawable().apply { setColor(Color.rgb(25, 39, 25)); cornerRadius = dp(17).toFloat(); setStroke(dp(1), Color.rgb(39, 63, 38)) }
     }
+    private fun tabBackground(selected: Boolean): StateListDrawable {
+        val normal = if (selected) Color.rgb(39, 63, 38) else Color.TRANSPARENT
+        val focused = Color.rgb(67, 111, 58)
+        fun shape(color: Int, stroke: Int) = GradientDrawable().apply {
+            setColor(color)
+            cornerRadius = dp(if (isTv) 14 else 11).toFloat()
+            setStroke(dp(if (isTv) 3 else 1), stroke)
+        }
+        return StateListDrawable().apply {
+            addState(intArrayOf(android.R.attr.state_focused), shape(focused, Color.WHITE))
+            addState(intArrayOf(android.R.attr.state_pressed), shape(focused, Color.WHITE))
+            addState(intArrayOf(), shape(normal, if (selected) Color.rgb(82, 181, 75) else Color.rgb(39, 63, 38)))
+        }
+    }
+    /** Two tabs: the Emby status and actions, and the activity log with the settings. */
+    private fun showTab(more: Boolean) {
+        showingMore = more
+        pageMain.visibility = if (more) View.GONE else View.VISIBLE
+        pageMore.visibility = if (more) View.VISIBLE else View.GONE
+        tabMain.background = tabBackground(!more)
+        tabMore.background = tabBackground(more)
+        tabMain.setTextColor(if (!more) Color.WHITE else Color.rgb(174, 193, 169))
+        tabMore.setTextColor(if (more) Color.WHITE else Color.rgb(174, 193, 169))
+        tabMain.setTypeface(null, if (!more) Typeface.BOLD else Typeface.NORMAL)
+        tabMore.setTypeface(null, if (more) Typeface.BOLD else Typeface.NORMAL)
+        if (more) scroll.post { scroll.fullScroll(ScrollView.FOCUS_DOWN) }
+    }
     private fun label(value: String, size: Float, color: Int, bold: Boolean = false) = TextView(this).apply {
         text = value; textSize = size; setTextColor(color); if (bold) setTypeface(null, Typeface.BOLD)
     }
@@ -96,6 +131,27 @@ class MainActivity : Activity() {
         root.addView(brand)
         root.addView(label(getString(R.string.tagline), 13f, Color.rgb(174, 193, 169)).apply { setPadding(0, dp(5), 0, 0) })
 
+        fun makeTab(text: String) = Button(this).apply {
+            id = View.generateViewId()
+            this.text = text
+            isAllCaps = false
+            textSize = if (isTv) 17f else 14f
+            minHeight = dp(if (isTv) 54 else 42)
+            minimumHeight = dp(if (isTv) 54 else 42)
+            isFocusable = true
+            isFocusableInTouchMode = isTv
+            stateListAnimator = null
+            setPadding(dp(12), dp(4), dp(12), dp(4))
+        }
+        tabMain = makeTab(getString(R.string.tab_main)).apply { setOnClickListener { showTab(false) } }
+        tabMore = makeTab(getString(R.string.tab_more)).apply { setOnClickListener { showTab(true) } }
+        val tabs = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        tabs.addView(tabMain, LinearLayout.LayoutParams(0, -2, 1f))
+        tabs.addView(tabMore, LinearLayout.LayoutParams(0, -2, 1f).apply { leftMargin = dp(8) })
+        root.addView(tabs, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(14) })
+        val mainColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val moreColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+
         val statusCard = panel()
         statusCard.addView(label(getString(R.string.status_header), 11f, Color.rgb(174, 193, 169), true))
         statusView = label(getString(R.string.status_checking_device), 17f, Color.WHITE, true).apply { setPadding(0, dp(8), 0, dp(3)) }
@@ -112,7 +168,10 @@ class MainActivity : Activity() {
         }
         statusCard.addView(workProgress, LinearLayout.LayoutParams(-1, dp(7)).apply { topMargin = dp(8) })
         statusCard.addView(label(getString(R.string.status_hint), 12f, Color.rgb(174, 193, 169)))
-        root.addView(statusCard, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(18) })
+        // The latest line of the activity log (the full log is on the second tab).
+        lastLogView = label("", 12f, Color.rgb(214, 226, 210)).apply { maxLines = 3; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(0, dp(8), 0, 0); visibility = View.GONE }
+        statusCard.addView(lastLogView)
+        mainColumn.addView(statusCard, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
 
         val actions = panel()
         actions.addView(label(getString(R.string.actions_header), 11f, Color.rgb(174, 193, 169), true))
@@ -167,23 +226,33 @@ class MainActivity : Activity() {
         removeButton.nextFocusDownId = buildButton.id
         buildButton.nextFocusDownId = forceButton.id
         forceButton.nextFocusUpId = buildButton.id
-        forceButton.nextFocusDownId = menuSwitch.id
-        menuSwitch.nextFocusUpId = forceButton.id
+        forceButton.nextFocusDownId = forceButton.id
+        menuSwitch.nextFocusUpId = tabMore.id
         menuSwitch.nextFocusDownId = menuSwitch.id
         val actionButtonHeight = dp(if (isTv) 68 else 50)
         actions.addView(removeButton, LinearLayout.LayoutParams(-1, actionButtonHeight).apply { topMargin = dp(10) })
         actions.addView(buildButton, LinearLayout.LayoutParams(-1, actionButtonHeight).apply { topMargin = dp(10) })
         actions.addView(forceButton, LinearLayout.LayoutParams(-1, actionButtonHeight).apply { topMargin = dp(8) })
-        actions.addView(menuSwitch, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
-        actions.addView(menuHint)
-        root.addView(actions, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(11) })
+        mainColumn.addView(actions, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(11) })
+
+        val settings = panel()
+        settings.addView(label(getString(R.string.settings_header), 11f, Color.rgb(174, 193, 169), true))
+        settings.addView(menuSwitch, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
+        settings.addView(menuHint)
+        moreColumn.addView(settings, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
 
         val logCard = panel()
         logCard.addView(label(getString(R.string.log_header), 11f, Color.rgb(174, 193, 169), true))
         logView = label("", if (isTv) 15f else 13f, Color.rgb(240, 245, 238)).apply { typeface = Typeface.MONOSPACE; setTextIsSelectable(!isTv); if (isTv) { isFocusable = false; isFocusableInTouchMode = false }; setLineSpacing(dp(4).toFloat(), 1.0f); includeFontPadding = true; setPadding(dp(8), dp(8), dp(8), dp(8)) }
         scroll = ScrollView(this).apply { isFillViewport = true; if (isTv) { isFocusable = false; descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS }; addView(logView) }
         logCard.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(9) })
-        root.addView(logCard, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(11); weight = 1f })
+        moreColumn.addView(logCard, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(11); weight = 1f })
+        // The first tab scrolls when the screen is small (phone in landscape).
+        pageMain = ScrollView(this).apply { isFillViewport = true; addView(mainColumn, ViewGroup.LayoutParams(-1, -2)) }
+        pageMore = moreColumn
+        root.addView(pageMain, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(pageMore, LinearLayout.LayoutParams(-1, 0, 1f))
+        showTab(false)
         setContentView(root)
         // D-pad users land on the primary action immediately; focus is clearly visible.
         buildButton.post { ensureFocus() }
@@ -221,12 +290,13 @@ class MainActivity : Activity() {
     /** D-pad: always keep the focus on a visible control (a TV shows no cursor, so lost focus = dead remote). */
     private fun ensureFocus() {
         val f = currentFocus
-        val ok = f != null && f.isShown && (f === removeButton || f === buildButton || f === forceButton || f === menuSwitch)
+        val ok = f != null && f.isShown && (f === removeButton || f === buildButton || f === forceButton || f === menuSwitch || f === tabMain || f === tabMore)
         if (ok) return
         val target = when {
+            showingMore -> menuSwitch
             removeButton.visibility == View.VISIBLE -> removeButton
             buildButton.isEnabled -> buildButton
-            else -> menuSwitch
+            else -> tabMore
         }
         target.requestFocus()
     }
@@ -242,6 +312,7 @@ class MainActivity : Activity() {
     private fun builtMenuFlag(marker: String?) = marker?.substringAfter("#menu=", "1")?.take(1) ?: "1"
 
     private fun uninstallEmby() {
+        echoLog = true
         log("Android will ask to uninstall Emby. After that you can install the Discover version.")
         try { startActivity(EmbyApp.uninstallIntent()) }
         catch (e: Exception) {
@@ -278,6 +349,7 @@ class MainActivity : Activity() {
     }
 
     @Volatile private var lastStatusLog: String? = null
+    @Volatile private var lastCheckError: String? = null
 
     private fun checkForEmbyUpdate() {
         val state = EmbyApp.state(this)
@@ -289,14 +361,23 @@ class MainActivity : Activity() {
             EmbyApp.Kind.FOREIGN -> getString(R.string.state_foreign, v)
             EmbyApp.Kind.PATCHED -> {
                 if (!workRunning) runOnUiThread { statusView.text = getString(R.string.state_patched_checking, v) }
-                val latest = Updater.latestSha(Updater.apkName())
                 val installed = prefs.getString("sha", null)
-                when {
-                    latest == null -> getString(R.string.state_patched_check_failed, v)
-                    installed == null -> getString(R.string.state_patched_unknown, v)
-                    latest != installed.substringBefore("#") -> getString(R.string.state_update_available, v)
-                    builtMenuFlag(installed) != menuFlag() -> getString(R.string.state_menu_changed)
-                    else -> getString(R.string.state_up_to_date, v)
+                if (installed == null) getString(R.string.state_patched_unknown, v)
+                else {
+                    val check = Updater.check(Updater.apkName(), installed)
+                    check.newMarker?.let { prefs.edit().putString("sha", it).apply() }
+                    if (check.current == null) {
+                        val why = Updater.lastError
+                        if (why != null && why != lastCheckError) { lastCheckError = why; log("Update check failed: $why") }
+                    } else lastCheckError = null
+                    when {
+                        check.latest == null -> getString(R.string.state_patched_check_failed, v)
+                        // Online id known, but the installed build (older patcher version) cannot be compared with it.
+                        check.current == null -> getString(R.string.state_patched_unknown, v)
+                        check.current == false -> getString(R.string.state_update_available, v)
+                        builtMenuFlag(installed) != menuFlag() -> getString(R.string.state_menu_changed)
+                        else -> getString(R.string.state_up_to_date, v)
+                    }
                 }
             }
         }
@@ -306,7 +387,7 @@ class MainActivity : Activity() {
                 buildButton.text = buildLabel()
             }
             removeButton.visibility = if (state.kind == EmbyApp.Kind.FOREIGN) View.VISIBLE else View.GONE
-            if (state.kind == EmbyApp.Kind.FOREIGN && !workRunning) removeButton.post { removeButton.requestFocus() }
+            if (state.kind == EmbyApp.Kind.FOREIGN && !workRunning && !showingMore) removeButton.post { removeButton.requestFocus() }
             else root.post { ensureFocus() }
         }
         if (message != lastStatusLog) {
@@ -332,12 +413,14 @@ class MainActivity : Activity() {
 
     private fun start(force: Boolean) {
         if (workRunning) return
+        echoLog = true
         val state = EmbyApp.state(this)
         embyState = state
         if (state.kind == EmbyApp.Kind.FOREIGN) {
             log("An Emby app with a different signature is installed. Android cannot update it to the patched version.")
             log("Uninstall the existing Emby app first (you will need to sign in again; your server and library are not changed).")
             removeButton.visibility = View.VISIBLE
+            showTab(false)
             removeButton.post { removeButton.requestFocus() }
             return
         }
@@ -383,9 +466,9 @@ class MainActivity : Activity() {
         log("Download channel: latest official beta; variant: $name")
         val myVersion = packageManager.getPackageInfo(packageName, 0).longVersionCode
         val menuOn = adminMenu()
-        val sha = Updater.latestSha(name); val marker = sha?.let { "$it#$myVersion#beta#menu=${menuFlag(menuOn)}" }
+        val sha = Updater.latestId(name); val marker = sha?.let { "$it#$myVersion#beta#menu=${menuFlag(menuOn)}" }
         val patchedInstalled = EmbyApp.state(this).kind == EmbyApp.Kind.PATCHED
-        if (marker == null) log("Could not check the version, downloading anyway.")
+        if (marker == null) log("Could not check the version (${Updater.lastError ?: "unknown reason"}), downloading anyway.")
         else if (!force && patchedInstalled && marker == prefs.getString("sha", null)) { log("You already have the latest version. Use 'Rebuild (force)' to reinstall anyway."); return }
         log("Server menu in the app: " + if (menuOn) "on" else "off")
         val orig = File(cacheDir, "orig.apk"); val patched = File(cacheDir, "patched.apk"); val signed = File(cacheDir, "signed.apk")
@@ -429,5 +512,11 @@ class MainActivity : Activity() {
 
     companion object { private const val OPTIONS_FILE = "assets/www/modules/discover-options.js" }
 
-    private fun log(msg: String) { runOnUiThread { logView.append(msg + "\n"); scroll.post { scroll.fullScroll(ScrollView.FOCUS_DOWN) } } }
+    private fun log(msg: String) {
+        runOnUiThread {
+            logView.append(msg + "\n")
+            if (echoLog) { lastLogView.text = msg.trim(); lastLogView.visibility = View.VISIBLE }
+            scroll.post { scroll.fullScroll(ScrollView.FOCUS_DOWN) }
+        }
+    }
 }

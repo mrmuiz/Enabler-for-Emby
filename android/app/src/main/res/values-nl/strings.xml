@@ -6,6 +6,8 @@
     <string name="status_hint">Controle bij het openen; installeren gebeurt pas na jouw keuze.</string>
     <string name="actions_header">ACTIES</string>
     <string name="log_header">ACTIVITEITENLOG</string>
+    <string name="tab_more">Log en instellingen</string>
+    <string name="settings_header">INSTELLINGEN</string>
     <string name="btn_install">Emby downloaden en Discover toevoegen</string>
     <string name="btn_update">Bijwerken: nieuwste Emby downloaden en Discover toevoegen</string>
     <string name="btn_force">Opnieuw bouwen (forceren)</string>

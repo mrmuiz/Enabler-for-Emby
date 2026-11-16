@@ -29,25 +29,90 @@ object Updater {
     @Volatile private var cached: Pair<String, Long>? = null
     private const val CACHE_MS = 10 * 60 * 1000L
 
+    /** Why the last check failed (English, for the activity log); null when it worked. */
+    @Volatile var lastError: String? = null
+        private set
+
+    /** Marker prefix of an id that is the ETag of the APK file instead of a commit sha. */
+    const val ETAG = "etag:"
+
     /**
-     * Uses the last commit of the APK file as the version check for the beta.
-     * Cached for 10 minutes: unauthenticated GitHub API calls are limited to 60 per hour.
+     * Id of the current Emby APK online. First choice: the ETag of the APK file itself, asked with a HEAD
+     * request on the same address the download uses (no GitHub API, so no rate limit of 60 calls per hour
+     * and no slow history lookup). Fallback: the last commit of the file from the GitHub API.
+     * Cached for 10 minutes.
      */
-    fun latestSha(name: String): String? {
-        cached?.let { (sha, at) -> if (System.currentTimeMillis() - at < CACHE_MS) return sha }
-        val sha = try {
-            val c = github(API_BASE + name + "&per_page=1")
-            try {
-                if (c.responseCode != 200) null else {
-                    val commits = JSONArray(c.inputStream.bufferedReader().use { it.readText() })
-                    // "sha" is a plain string in the GitHub commits API.
-                    if (commits.length() == 0) null else commits.getJSONObject(0).optString("sha").ifEmpty { null }
-                }
-            } finally { c.disconnect() }
-        } catch (_: Exception) { null }
-        if (sha != null) cached = sha to System.currentTimeMillis()
-        return sha
+    fun latestId(name: String): String? {
+        cached?.let { (id, at) -> if (System.currentTimeMillis() - at < CACHE_MS) return id }
+        val errors = ArrayList<String>()
+        val id = etag(name, errors) ?: commitSha(name, errors)
+        lastError = if (id == null) errors.joinToString("; ") else null
+        if (id != null) cached = id to System.currentTimeMillis()
+        return id
     }
+
+    /** The commit sha only (to compare with a build that was installed by an older patcher version). */
+    private fun latestSha(name: String, errors: MutableList<String>): String? = commitSha(name, errors)
+
+    /**
+     * Result of comparing the installed build with the APK online.
+     * current: true = up to date, false = newer APK online, null = could not be compared.
+     * latest: id of the APK online (null when the check itself failed).
+     * newMarker: the installed marker rewritten with the new kind of id (store it; the next check then needs no GitHub API).
+     */
+    class Check(val current: Boolean?, val latest: String?, val newMarker: String?)
+
+    /** marker = what was stored after the last install: id#patcherVersion#beta#menu=1 */
+    fun check(name: String, marker: String): Check {
+        val installed = marker.substringBefore("#")
+        val latest = latestId(name) ?: return Check(null, null, null)
+        if (latest.startsWith(ETAG) == installed.startsWith(ETAG)) return Check(latest == installed, latest, null)
+        if (installed.startsWith(ETAG)) return Check(null, latest, null)
+        // Installed by an older patcher version (commit sha): compare once by commit, then switch to the new id.
+        val errors = ArrayList<String>()
+        val sha = latestSha(name, errors)
+        if (sha == null) { lastError = errors.joinToString("; "); return Check(null, latest, null) }
+        val same = sha == installed
+        return Check(same, latest, if (same) latest + marker.substring(installed.length) else null)
+    }
+
+    private fun etag(name: String, errors: MutableList<String>): String? = try {
+        val c = URL(BASE + name).openConnection() as HttpURLConnection
+        try {
+            c.requestMethod = "HEAD"
+            c.connectTimeout = 15000
+            c.readTimeout = 20000
+            c.instanceFollowRedirects = true
+            c.setRequestProperty("User-Agent", "DiscoverPatcher")
+            // Always the same representation, so the ETag does not depend on compression.
+            c.setRequestProperty("Accept-Encoding", "identity")
+            val code = c.responseCode
+            val tag = c.getHeaderField("ETag")?.removePrefix("W/")?.trim('"', ' ')
+            when {
+                code != 200 -> { errors.add("file check: HTTP $code"); null }
+                tag.isNullOrEmpty() -> { errors.add("file check: no ETag"); null }
+                else -> ETAG + tag
+            }
+        } finally { c.disconnect() }
+    } catch (e: Exception) { errors.add("file check: ${e.javaClass.simpleName} ${e.message ?: ""}".trim()); null }
+
+    private fun commitSha(name: String, errors: MutableList<String>): String? = try {
+        val c = github(API_BASE + name + "&per_page=1")
+        try {
+            val code = c.responseCode
+            if (code != 200) {
+                val limited = code == 403 && c.getHeaderField("X-RateLimit-Remaining") == "0"
+                errors.add("GitHub API: HTTP $code" + if (limited) " (rate limit reached)" else "")
+                null
+            } else {
+                val commits = JSONArray(c.inputStream.bufferedReader().use { it.readText() })
+                // "sha" is a plain string in the GitHub commits API.
+                val sha = if (commits.length() == 0) null else commits.getJSONObject(0).optString("sha").ifEmpty { null }
+                if (sha == null) errors.add("GitHub API: no commit found")
+                sha
+            }
+        } finally { c.disconnect() }
+    } catch (e: Exception) { errors.add("GitHub API: ${e.javaClass.simpleName} ${e.message ?: ""}".trim()); null }
 
     /** Always downloads the APK straight from the official Emby Android folder. */
     fun downloadUrl(name: String): String = BASE + name
