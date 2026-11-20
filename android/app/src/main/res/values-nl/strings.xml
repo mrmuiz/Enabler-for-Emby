@@ -43,4 +43,12 @@
     <string name="notif_channel">Emby-updates</string>
     <string name="notif_update_title">Nieuwe Emby-versie beschikbaar</string>
     <string name="notif_update_text">Open Discover Patcher om de nieuwste bèta te downloaden en te installeren.</string>
+    <string name="switch_tv_mode">Tv-modus: grotere letters en afstandsbediening</string>
+    <string name="switch_tv_mode_hint">Staat vanzelf aan op een tv of tv-stick. Zet hem zelf aan als de letters te klein zijn of de afstandsbediening niet werkt; open de app daarna opnieuw.</string>
+    <string name="banner_patcher_update">Nieuwe versie van Discover Patcher beschikbaar: %1$s</string>
+    <string name="banner_patcher_update_action">Open de downloadpagina</string>
+    <string name="banner_emby_update">Er is een nieuwe Emby-versie. Kies hieronder Bijwerken.</string>
+    <string name="notif_patcher_channel">Discover Patcher-updates</string>
+    <string name="notif_patcher_title">Nieuwe versie van Discover Patcher</string>
+    <string name="notif_patcher_text">Versie %1$s staat klaar op GitHub.</string>
 </resources>

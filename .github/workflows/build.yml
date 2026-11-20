@@ -271,6 +271,14 @@ jobs:
           cp art/cli-*/*.tar.gz rel/
           # Only a release-signed patcher goes into a release (a debug build could not be updated later).
           cp art/android/DiscoverPatcher.apk rel/ 2>/dev/null || echo "No release-signed DiscoverPatcher.apk (secrets missing)"
+      - name: Version file for the app's own update check
+        run: |
+          # The app reads this through releases/latest/download/, so it needs no GitHub API and no rate limit.
+          G=android/app/build.gradle.kts
+          CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' "$G" | head -1)
+          NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' "$G" | head -1)
+          printf '{"versionCode":%s,"versionName":"%s","tag":"%s"}\n' "$CODE" "$NAME" "${{ github.event.inputs.release_tag || github.ref_name }}" > rel/patcher-version.json
+          cat rel/patcher-version.json
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}

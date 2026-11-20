@@ -43,4 +43,12 @@
     <string name="notif_channel">Emby-Updates</string>
     <string name="notif_update_title">Neue Emby-Version verfügbar</string>
     <string name="notif_update_text">Öffne Discover Patcher, um die neueste Beta herunterzuladen und zu installieren.</string>
+    <string name="switch_tv_mode">TV-Modus: größere Schrift und Fernbedienung</string>
+    <string name="switch_tv_mode_hint">Bei einem Fernseher oder TV-Stick automatisch an. Schalte ihn selbst ein, wenn die Schrift zu klein ist oder die Fernbedienung nicht funktioniert; öffne die App danach neu.</string>
+    <string name="banner_patcher_update">Neue Version von Discover Patcher verfügbar: %1$s</string>
+    <string name="banner_patcher_update_action">Download-Seite öffnen</string>
+    <string name="banner_emby_update">Es gibt eine neue Emby-Version. Wähle unten Aktualisieren.</string>
+    <string name="notif_patcher_channel">Discover-Patcher-Updates</string>
+    <string name="notif_patcher_title">Neue Version von Discover Patcher</string>
+    <string name="notif_patcher_text">Version %1$s steht auf GitHub bereit.</string>
 </resources>

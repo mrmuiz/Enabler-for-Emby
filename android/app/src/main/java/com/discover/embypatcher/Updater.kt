@@ -11,6 +11,41 @@ object Updater {
     const val BASE = "https://github.com/MediaBrowser/Emby.Releases/raw/master/android/"
     private const val API_BASE = "https://api.github.com/repos/MediaBrowser/Emby.Releases/commits?path=android/"
 
+    // Discover Patcher itself. "latest/download" always points at the newest release, so this needs no
+    // GitHub API call and no rate limit. The file is attached to every release by the build workflow.
+    const val PATCHER_RELEASES = "https://github.com/mrmuiz/Enabler-for-Emby/releases/latest"
+    private const val PATCHER_VERSION_FILE = "$PATCHER_RELEASES/download/patcher-version.json"
+
+    /** A release of Discover Patcher itself. */
+    class PatcherRelease(val versionCode: Long, val versionName: String)
+
+    @Volatile private var patcherCached: Pair<PatcherRelease?, Long>? = null
+
+    /**
+     * The newest Discover Patcher on GitHub, or null when it cannot be read (no connection, or a release
+     * from before this file existed). Cached for an hour.
+     */
+    fun latestPatcher(): PatcherRelease? {
+        patcherCached?.let { (r, at) -> if (System.currentTimeMillis() - at < 60 * 60 * 1000L) return r }
+        var result: PatcherRelease? = null
+        try {
+            val c = URL(PATCHER_VERSION_FILE).openConnection() as HttpURLConnection
+            try {
+                c.connectTimeout = 15000
+                c.readTimeout = 20000
+                c.instanceFollowRedirects = true
+                c.setRequestProperty("User-Agent", "DiscoverPatcher")
+                if (c.responseCode == 200) {
+                    val o = org.json.JSONObject(c.inputStream.bufferedReader().use { it.readText() })
+                    val code = o.optLong("versionCode", 0L)
+                    if (code > 0L) result = PatcherRelease(code, o.optString("versionName", ""))
+                }
+            } finally { c.disconnect() }
+        } catch (_: Exception) { }
+        patcherCached = result to System.currentTimeMillis()
+        return result
+    }
+
     /** Picks the right APK variant for this device. */
     fun apkName(): String {
         val known = setOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
