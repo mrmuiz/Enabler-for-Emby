@@ -38,7 +38,12 @@ There are two ways to get the patched app:
 3. Choose whether the **server menu** (server settings) should show in the app. Changed it later? Tap **Rebuild (force)**.
 
 The app follows the phone language (English, Dutch, German, Norwegian); the activity log is in English.
-It works with a remote on Android TV / Chromecast / Fire TV.
+It works with a remote on Android TV / Chromecast / Fire TV: bigger text, margins that stay inside the
+picture, and D-pad navigation. Not every TV box reports itself as a TV, so if the text stays small or the
+remote does not reach the buttons, turn on **TV mode** under *Log & settings*.
+
+The app also reports a new version of Discover Patcher itself, as a banner above the status and once a day
+as a notification.
 
 The patcher signs Emby with its own key, stored in the patcher's app data. **Do not uninstall Discover Patcher**:
 without its key, updates can no longer be installed over the patched Emby (you would have to uninstall Emby first).
