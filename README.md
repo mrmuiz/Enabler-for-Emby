@@ -50,6 +50,8 @@ without its key, updates can no longer be installed over the patched Emby (you w
 
 Source: [`android/`](android/) (Kotlin, Android Studio / Gradle).
 
+What changed per version: [CHANGELOG.md](CHANGELOG.md).
+
 ## Option 2: Discover Enabler (Windows)
 
 ![Discover Enabler on Windows](docs/screenshot.png)
