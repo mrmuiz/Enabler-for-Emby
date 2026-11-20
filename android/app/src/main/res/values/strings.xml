@@ -45,4 +45,12 @@
     <string name="notif_channel">Emby updates</string>
     <string name="notif_update_title">New Emby version available</string>
     <string name="notif_update_text">Open Discover Patcher to download and install the latest beta.</string>
+    <string name="switch_tv_mode">TV mode: bigger text and remote control</string>
+    <string name="switch_tv_mode_hint">Automatically on for a TV or a TV stick. Turn it on by hand if the text is too small or the remote does not work; reopen the app afterwards.</string>
+    <string name="banner_patcher_update">New version of Discover Patcher available: %1$s</string>
+    <string name="banner_patcher_update_action">Open the download page</string>
+    <string name="banner_emby_update">A new Emby version is available. Choose Update below.</string>
+    <string name="notif_patcher_channel">Discover Patcher updates</string>
+    <string name="notif_patcher_title">New version of Discover Patcher</string>
+    <string name="notif_patcher_text">Version %1$s is available on GitHub.</string>
 </resources>

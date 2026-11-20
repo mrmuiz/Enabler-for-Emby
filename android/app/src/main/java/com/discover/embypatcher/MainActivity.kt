@@ -39,6 +39,8 @@ class MainActivity : Activity() {
     private lateinit var menuSwitch: Switch
     private lateinit var root: LinearLayout
     private lateinit var lastLogView: TextView
+    private lateinit var bannerView: TextView
+    private lateinit var tvSwitch: Switch
     private lateinit var tabMain: Button
     private lateinit var tabMore: Button
     private lateinit var pageMain: View
@@ -54,18 +56,32 @@ class MainActivity : Activity() {
     // The update check must not block starting a download.
     private val updateExec = Executors.newSingleThreadExecutor()
     private val prefs by lazy { getSharedPreferences("emby", MODE_PRIVATE) }
-    private val isTv by lazy {
+    /**
+     * Not every TV or TV stick reports itself as a TV: some boxes have no leanback feature and call
+     * themselves a phone. Having no touchscreen is the most reliable extra hint. The switch in the
+     * settings overrules this, for the sets that still fall through.
+     */
+    private val tvDetected by lazy {
         packageManager.hasSystemFeature("android.software.leanback") ||
-            (resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) == Configuration.UI_MODE_TYPE_TELEVISION
+            packageManager.hasSystemFeature("android.software.leanback_only") ||
+            (resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) == Configuration.UI_MODE_TYPE_TELEVISION ||
+            !packageManager.hasSystemFeature("android.hardware.touchscreen")
     }
+    private val isTv by lazy { prefs.getBoolean("tv_mode", tvDetected) }
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+    /** On a TV you sit metres away, so everything is larger. */
+    private fun sp(v: Float) = if (isTv) v * 1.5f else v
+    /** TVs often wash out dark colours, so the panels and the secondary text get more contrast. */
+    private val textDim by lazy { if (isTv) Color.rgb(206, 222, 202) else Color.rgb(174, 193, 169) }
+    private val panelFill by lazy { if (isTv) Color.rgb(28, 45, 27) else Color.rgb(25, 39, 25) }
+    private val panelEdge by lazy { if (isTv) Color.rgb(74, 112, 70) else Color.rgb(39, 63, 38) }
     private fun buttonBackground(primary: Boolean): StateListDrawable {
         val normal = if (primary) Color.rgb(82, 181, 75) else Color.rgb(39, 63, 38)
         val focused = if (primary) Color.rgb(133, 220, 95) else Color.rgb(67, 111, 58)
         fun shape(color: Int) = GradientDrawable().apply {
             setColor(color)
             cornerRadius = dp(if (isTv) 16 else 12).toFloat()
-            setStroke(dp(if (isTv) 3 else 1), if (color == focused) Color.WHITE else Color.TRANSPARENT)
+            setStroke(dp(if (isTv) 4 else 1), if (color == focused) Color.WHITE else Color.TRANSPARENT)
         }
         return StateListDrawable().apply {
             addState(intArrayOf(android.R.attr.state_focused), shape(focused))
@@ -75,8 +91,9 @@ class MainActivity : Activity() {
     }
     private fun panel() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(18), dp(15), dp(18), dp(15))
-        background = GradientDrawable().apply { setColor(Color.rgb(25, 39, 25)); cornerRadius = dp(17).toFloat(); setStroke(dp(1), Color.rgb(39, 63, 38)) }
+        val pad = if (isTv) 22 else 18
+        setPadding(dp(pad), dp(if (isTv) 18 else 15), dp(pad), dp(if (isTv) 18 else 15))
+        background = GradientDrawable().apply { setColor(panelFill); cornerRadius = dp(17).toFloat(); setStroke(dp(if (isTv) 2 else 1), panelEdge) }
     }
     private fun tabBackground(selected: Boolean): StateListDrawable {
         val normal = if (selected) Color.rgb(39, 63, 38) else Color.TRANSPARENT
@@ -84,7 +101,7 @@ class MainActivity : Activity() {
         fun shape(color: Int, stroke: Int) = GradientDrawable().apply {
             setColor(color)
             cornerRadius = dp(if (isTv) 14 else 11).toFloat()
-            setStroke(dp(if (isTv) 3 else 1), stroke)
+            setStroke(dp(if (isTv) 4 else 1), stroke)
         }
         return StateListDrawable().apply {
             addState(intArrayOf(android.R.attr.state_focused), shape(focused, Color.WHITE))
@@ -114,8 +131,10 @@ class MainActivity : Activity() {
         window.navigationBarColor = Color.rgb(10, 18, 10)
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            val edge = if (isTv) 48 else 22
-            setPadding(dp(edge), dp(if (isTv) 28 else 20), dp(edge), dp(if (isTv) 26 else 18))
+            // A TV cuts off the edges of the picture (overscan); 5% of the screen is the usual safe margin.
+            val sideEdge = if (isTv) (resources.displayMetrics.widthPixels * 0.05f).toInt() else dp(22)
+            val topEdge = if (isTv) (resources.displayMetrics.heightPixels * 0.05f).toInt() else dp(20)
+            setPadding(sideEdge, topEdge, sideEdge, topEdge)
             setBackgroundColor(Color.rgb(10, 18, 10))
             descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
         }
@@ -126,18 +145,18 @@ class MainActivity : Activity() {
             scaleType = android.widget.ImageView.ScaleType.FIT_START
             contentDescription = "Discover"
         }
-        brand.addView(logo, LinearLayout.LayoutParams(-2, dp(if (isTv) 44 else 36)))
-        brand.addView(label("Patcher", if (isTv) 28f else 24f, Color.WHITE, true).apply { setPadding(dp(12), 0, 0, 0) })
+        brand.addView(logo, LinearLayout.LayoutParams(-2, dp(if (isTv) 56 else 36)))
+        brand.addView(label("Patcher", sp(24f), Color.WHITE, true).apply { setPadding(dp(12), 0, 0, 0) })
         root.addView(brand)
-        root.addView(label(getString(R.string.tagline), 13f, Color.rgb(174, 193, 169)).apply { setPadding(0, dp(5), 0, 0) })
+        root.addView(label(getString(R.string.tagline), sp(13f), textDim).apply { setPadding(0, dp(5), 0, 0) })
 
         fun makeTab(text: String) = Button(this).apply {
             id = View.generateViewId()
             this.text = text
             isAllCaps = false
-            textSize = if (isTv) 17f else 14f
-            minHeight = dp(if (isTv) 54 else 42)
-            minimumHeight = dp(if (isTv) 54 else 42)
+            textSize = sp(14f)
+            minHeight = dp(if (isTv) 62 else 42)
+            minimumHeight = dp(if (isTv) 62 else 42)
             isFocusable = true
             isFocusableInTouchMode = isTv
             stateListAnimator = null
@@ -152,9 +171,20 @@ class MainActivity : Activity() {
         val mainColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val moreColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 
+        // Notice about a new version, above the status; hidden until there is one.
+        bannerView = label("", sp(14f), Color.rgb(10, 28, 9), true).apply {
+            id = View.generateViewId()
+            visibility = View.GONE
+            setPadding(dp(16), dp(13), dp(16), dp(13))
+            background = GradientDrawable().apply { setColor(Color.rgb(133, 220, 95)); cornerRadius = dp(14).toFloat() }
+            isFocusable = false
+            setOnClickListener { openPatcherReleases() }
+        }
+        mainColumn.addView(bannerView, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
+
         val statusCard = panel()
-        statusCard.addView(label(getString(R.string.status_header), 11f, Color.rgb(174, 193, 169), true))
-        statusView = label(getString(R.string.status_checking_device), 17f, Color.WHITE, true).apply { setPadding(0, dp(8), 0, dp(3)) }
+        statusCard.addView(label(getString(R.string.status_header), sp(11f), textDim, true))
+        statusView = label(getString(R.string.status_checking_device), sp(17f), Color.WHITE, true).apply { setPadding(0, dp(8), 0, dp(3)) }
         statusCard.addView(statusView)
         workProgress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
@@ -167,21 +197,21 @@ class MainActivity : Activity() {
             }
         }
         statusCard.addView(workProgress, LinearLayout.LayoutParams(-1, dp(7)).apply { topMargin = dp(8) })
-        statusCard.addView(label(getString(R.string.status_hint), 12f, Color.rgb(174, 193, 169)))
+        statusCard.addView(label(getString(R.string.status_hint), sp(12f), textDim))
         // The latest line of the activity log (the full log is on the second tab).
-        lastLogView = label("", 12f, Color.rgb(214, 226, 210)).apply { maxLines = 3; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(0, dp(8), 0, 0); visibility = View.GONE }
+        lastLogView = label("", sp(12f), Color.rgb(214, 226, 210)).apply { maxLines = 3; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(0, dp(8), 0, 0); visibility = View.GONE }
         statusCard.addView(lastLogView)
         mainColumn.addView(statusCard, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
 
         val actions = panel()
-        actions.addView(label(getString(R.string.actions_header), 11f, Color.rgb(174, 193, 169), true))
+        actions.addView(label(getString(R.string.actions_header), sp(11f), textDim, true))
         fun makeButton(text: String, primary: Boolean) = Button(this).apply {
             this.text = text
             isAllCaps = false
-            textSize = if (isTv) 19f else 14f
+            textSize = sp(14f)
             setTextColor(if (primary) Color.rgb(10, 28, 9) else Color.WHITE)
             background = buttonBackground(primary)
-            minHeight = dp(if (isTv) 68 else 50)
+            minHeight = dp(if (isTv) 76 else 50)
             minWidth = dp(if (isTv) 320 else 0)
             isFocusable = true
             // On phones the first tap should click right away; focus-in-touch-mode
@@ -207,12 +237,12 @@ class MainActivity : Activity() {
         menuSwitch = Switch(this).apply {
             id = View.generateViewId()
             text = getString(R.string.switch_server_menu)
-            textSize = if (isTv) 17f else 14f
+            textSize = sp(14f)
             setTextColor(Color.WHITE)
             isChecked = adminMenu()
             isFocusable = true
             isFocusableInTouchMode = isTv
-            minHeight = dp(if (isTv) 60 else 48)
+            minHeight = dp(if (isTv) 70 else 48)
             setPadding(dp(14), dp(6), dp(10), dp(6))
             background = buttonBackground(false)
             setOnCheckedChangeListener { _: CompoundButton, on: Boolean ->
@@ -221,30 +251,71 @@ class MainActivity : Activity() {
                 updateExec.execute { checkForEmbyUpdate() }
             }
         }
-        val menuHint = label(getString(R.string.switch_server_menu_hint), 12f, Color.rgb(174, 193, 169)).apply { setPadding(dp(4), dp(4), 0, 0) }
+        val menuHint = label(getString(R.string.switch_server_menu_hint), sp(12f), textDim).apply { setPadding(dp(4), dp(4), 0, 0) }
+        // Lets someone switch on the TV layout by hand when their set is not recognised as a TV.
+        tvSwitch = Switch(this).apply {
+            id = View.generateViewId()
+            text = getString(R.string.switch_tv_mode)
+            textSize = sp(14f)
+            setTextColor(Color.WHITE)
+            isChecked = isTv
+            isFocusable = true
+            isFocusableInTouchMode = isTv
+            minHeight = dp(if (isTv) 70 else 48)
+            setPadding(dp(14), dp(6), dp(10), dp(6))
+            background = buttonBackground(false)
+            setOnCheckedChangeListener { _: CompoundButton, on: Boolean ->
+                prefs.edit().putBoolean("tv_mode", on).apply()
+                log("TV mode: " + (if (on) "on" else "off") + " — restarting the screen.")
+                recreate()
+            }
+        }
+        val tvHint = label(getString(R.string.switch_tv_mode_hint), sp(12f), textDim).apply { setPadding(dp(4), dp(4), 0, 0) }
         // Give the buttons enough height on TV and fix the D-pad order.
+        tabMain.nextFocusRightId = tabMore.id
+        tabMore.nextFocusLeftId = tabMain.id
+        tabMain.nextFocusDownId = buildButton.id
+        tabMore.nextFocusDownId = menuSwitch.id
+        removeButton.nextFocusUpId = tabMain.id
         removeButton.nextFocusDownId = buildButton.id
+        buildButton.nextFocusUpId = tabMain.id
         buildButton.nextFocusDownId = forceButton.id
         forceButton.nextFocusUpId = buildButton.id
         forceButton.nextFocusDownId = forceButton.id
         menuSwitch.nextFocusUpId = tabMore.id
-        menuSwitch.nextFocusDownId = menuSwitch.id
-        val actionButtonHeight = dp(if (isTv) 68 else 50)
+        menuSwitch.nextFocusDownId = tvSwitch.id
+        tvSwitch.nextFocusUpId = menuSwitch.id
+        val actionButtonHeight = dp(if (isTv) 76 else 50)
         actions.addView(removeButton, LinearLayout.LayoutParams(-1, actionButtonHeight).apply { topMargin = dp(10) })
         actions.addView(buildButton, LinearLayout.LayoutParams(-1, actionButtonHeight).apply { topMargin = dp(10) })
         actions.addView(forceButton, LinearLayout.LayoutParams(-1, actionButtonHeight).apply { topMargin = dp(8) })
         mainColumn.addView(actions, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(11) })
 
         val settings = panel()
-        settings.addView(label(getString(R.string.settings_header), 11f, Color.rgb(174, 193, 169), true))
+        settings.addView(label(getString(R.string.settings_header), sp(11f), textDim, true))
         settings.addView(menuSwitch, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
         settings.addView(menuHint)
+        settings.addView(tvSwitch, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(14) })
+        settings.addView(tvHint)
         moreColumn.addView(settings, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
 
         val logCard = panel()
-        logCard.addView(label(getString(R.string.log_header), 11f, Color.rgb(174, 193, 169), true))
-        logView = label("", if (isTv) 15f else 13f, Color.rgb(240, 245, 238)).apply { typeface = Typeface.MONOSPACE; setTextIsSelectable(!isTv); if (isTv) { isFocusable = false; isFocusableInTouchMode = false }; setLineSpacing(dp(4).toFloat(), 1.0f); includeFontPadding = true; setPadding(dp(8), dp(8), dp(8), dp(8)) }
-        scroll = ScrollView(this).apply { isFillViewport = true; if (isTv) { isFocusable = false; descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS }; addView(logView) }
+        logCard.addView(label(getString(R.string.log_header), sp(11f), textDim, true))
+        logView = label("", if (isTv) 17f else 13f, Color.rgb(240, 245, 238)).apply { typeface = Typeface.MONOSPACE; setTextIsSelectable(!isTv); if (isTv) { isFocusable = false; isFocusableInTouchMode = false }; setLineSpacing(dp(4).toFloat(), 1.0f); includeFontPadding = true; setPadding(dp(8), dp(8), dp(8), dp(8)) }
+        // On a TV the log itself takes the focus, so the remote can scroll through it.
+        scroll = ScrollView(this).apply {
+            id = View.generateViewId()
+            isFillViewport = true
+            if (isTv) {
+                isFocusable = true
+                isFocusableInTouchMode = true
+                descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+                background = buttonBackground(false)
+                nextFocusUpId = tvSwitch.id
+            }
+            addView(logView)
+        }
+        if (isTv) tvSwitch.nextFocusDownId = scroll.id
         logCard.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(9) })
         moreColumn.addView(logCard, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(11); weight = 1f })
         // The first tab scrolls when the screen is small (phone in landscape).
@@ -271,6 +342,7 @@ class MainActivity : Activity() {
         log("${PatchSource.collect(this).size} file(s) in the patch set.")
         log("Extra files folder: ${PatchSource.externalPatchDir(this)}")
         scheduleDailyUpdateCheck()
+        updateExec.execute { checkForPatcherUpdate() }
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 2402)
         }
@@ -290,7 +362,7 @@ class MainActivity : Activity() {
     /** D-pad: always keep the focus on a visible control (a TV shows no cursor, so lost focus = dead remote). */
     private fun ensureFocus() {
         val f = currentFocus
-        val ok = f != null && f.isShown && (f === removeButton || f === buildButton || f === forceButton || f === menuSwitch || f === tabMain || f === tabMore)
+        val ok = f != null && f.isShown && (f === bannerView || f === removeButton || f === buildButton || f === forceButton || f === menuSwitch || f === tvSwitch || f === scroll || f === tabMain || f === tabMore)
         if (ok) return
         val target = when {
             showingMore -> menuSwitch
@@ -334,6 +406,43 @@ class MainActivity : Activity() {
         updateExec.execute { checkForEmbyUpdate() }
     }
 
+    /** Opens the download page of Discover Patcher; on a TV there is often no browser, so say so in the log. */
+    private fun openPatcherReleases() {
+        try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Updater.PATCHER_RELEASES))) }
+        catch (_: Exception) { log("No browser on this device. Download it on a phone or computer: ${Updater.PATCHER_RELEASES}") }
+    }
+
+    /** Is there a newer Discover Patcher on GitHub? Shown as a banner above the status. */
+    private fun checkForPatcherUpdate() {
+        val latest = Updater.latestPatcher() ?: return
+        val mine = try { packageManager.getPackageInfo(packageName, 0).longVersionCode } catch (_: Exception) { return }
+        if (latest.versionCode <= mine) { newPatcherVersion = null; runOnUiThread { showBanner() }; return }
+        newPatcherVersion = latest.versionName.ifEmpty { latest.versionCode.toString() }
+        log("New Discover Patcher available: ${newPatcherVersion} (you have ${packageManager.getPackageInfo(packageName, 0).versionName}).")
+        runOnUiThread { showBanner() }
+    }
+
+    /** One line above the status: a new Patcher comes first, otherwise a new Emby. */
+    private fun showBanner() {
+        val patcher = newPatcherVersion
+        val text = when {
+            patcher != null -> getString(R.string.banner_patcher_update, patcher) + " — " + getString(R.string.banner_patcher_update_action)
+            embyUpdateReady -> getString(R.string.banner_emby_update)
+            else -> null
+        }
+        bannerView.text = text ?: ""
+        bannerView.visibility = if (text == null) View.GONE else View.VISIBLE
+        bannerView.isClickable = patcher != null
+        bannerView.isFocusable = patcher != null
+        bannerView.isFocusableInTouchMode = patcher != null && isTv
+        if (text != null && patcher != null) {
+            bannerView.nextFocusDownId = if (removeButton.visibility == View.VISIBLE) removeButton.id else buildButton.id
+            tabMain.nextFocusDownId = bannerView.id
+        } else {
+            tabMain.nextFocusDownId = buildButton.id
+        }
+    }
+
     private fun scheduleDailyUpdateCheck() {
         val request = PeriodicWorkRequestBuilder<EmbyUpdateWorker>(24, TimeUnit.HOURS).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork("daily-emby-update-check", ExistingPeriodicWorkPolicy.KEEP, request)
@@ -350,11 +459,15 @@ class MainActivity : Activity() {
 
     @Volatile private var lastStatusLog: String? = null
     @Volatile private var lastCheckError: String? = null
+    /** Version name of a newer Discover Patcher on GitHub, or null. */
+    @Volatile private var newPatcherVersion: String? = null
+    @Volatile private var embyUpdateReady = false
 
     private fun checkForEmbyUpdate() {
         val state = EmbyApp.state(this)
         embyState = state
         val v = state.versionName ?: "?"
+        embyUpdateReady = false
         // First what is on the device; the online check only makes sense for a patched Emby.
         val message = when (state.kind) {
             EmbyApp.Kind.NOT_INSTALLED -> getString(R.string.state_not_installed)
@@ -374,7 +487,7 @@ class MainActivity : Activity() {
                         check.latest == null -> getString(R.string.state_patched_check_failed, v)
                         // Online id known, but the installed build (older patcher version) cannot be compared with it.
                         check.current == null -> getString(R.string.state_patched_unknown, v)
-                        check.current == false -> getString(R.string.state_update_available, v)
+                        check.current == false -> { embyUpdateReady = true; getString(R.string.state_update_available, v) }
                         builtMenuFlag(installed) != menuFlag() -> getString(R.string.state_menu_changed)
                         else -> getString(R.string.state_up_to_date, v)
                     }
@@ -387,6 +500,7 @@ class MainActivity : Activity() {
                 buildButton.text = buildLabel()
             }
             removeButton.visibility = if (state.kind == EmbyApp.Kind.FOREIGN) View.VISIBLE else View.GONE
+            showBanner()
             if (state.kind == EmbyApp.Kind.FOREIGN && !workRunning && !showingMore) removeButton.post { removeButton.requestFocus() }
             else root.post { ensureFocus() }
         }

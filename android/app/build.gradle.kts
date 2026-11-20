@@ -10,8 +10,8 @@ android {
         applicationId = "com.discover.embypatcher"
         minSdk = 24
         targetSdk = 34
-        versionCode = 13
-        versionName = "2.9.4-beta"
+        versionCode = 14
+        versionName = "2.9.5-beta"
     }
     // Release signing from environment variables (set by CI from repository secrets).
     // Keep the same keystore for every release, otherwise a new patcher version cannot

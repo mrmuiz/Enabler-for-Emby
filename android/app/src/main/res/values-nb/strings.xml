@@ -43,4 +43,12 @@
     <string name="notif_channel">Emby-oppdateringer</string>
     <string name="notif_update_title">Ny Emby-versjon tilgjengelig</string>
     <string name="notif_update_text">Åpne Discover Patcher for å laste ned og installere nyeste beta.</string>
+    <string name="switch_tv_mode">TV-modus: større tekst og fjernkontroll</string>
+    <string name="switch_tv_mode_hint">Slås på automatisk på en TV eller TV-stick. Slå den på selv hvis teksten er for liten eller fjernkontrollen ikke virker; åpne appen på nytt etterpå.</string>
+    <string name="banner_patcher_update">Ny versjon av Discover Patcher tilgjengelig: %1$s</string>
+    <string name="banner_patcher_update_action">Åpne nedlastingssiden</string>
+    <string name="banner_emby_update">Det finnes en ny Emby-versjon. Velg Oppdater nedenfor.</string>
+    <string name="notif_patcher_channel">Discover Patcher-oppdateringer</string>
+    <string name="notif_patcher_title">Ny versjon av Discover Patcher</string>
+    <string name="notif_patcher_text">Versjon %1$s er klar på GitHub.</string>
 </resources>
